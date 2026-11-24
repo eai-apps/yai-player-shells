@@ -1,0 +1,30 @@
+<resources>
+    <string name="vizo_short" translatable="false">VIZO</string>
+    <string name="vizo_main">Main</string>
+    <string name="vizo_home">YAiPlayer VIZO</string>
+    <string name="vizo_add">Add a source</string>
+    <string name="vizo_sources">Sources</string>
+    <string name="vizo_m3u">M3U playlist</string>
+    <string name="vizo_xtream">Xtream Codes</string>
+    <string name="vizo_stalker">Stalker portal</string>
+    <string name="vizo_all">All channels</string>
+    <string name="vizo_history">Recently watched</string>
+    <string name="vizo_favorites">Favorites</string>
+    <string name="vizo_archive">Archive</string>
+    <string name="vizo_continue">Continue watching</string>
+    <string name="vizo_account">Account / Guest</string>
+    <string name="vizo_remote">Remote control</string>
+    <string name="vizo_search">Search</string>
+    <string name="vizo_guide">TV guide</string>
+    <string name="vizo_settings">Settings</string>
+    <string name="vizo_playlists">Playlists</string>
+    <string name="vizo_epg">Guide sources</string>
+    <string name="vizo_full_settings">All settings</string>
+    <string name="vizo_back">Back</string>
+    <string name="vizo_empty">Add your playlist or portal to watch channels.</string>
+    <string name="vizo_fullscreen">Full screen</string>
+    <string name="vizo_no_guide">No programme information</string>
+    <string name="vizo_on_now">On now</string>
+    <string name="vizo_time_range" translatable="false">%1$s – %2$s</string>
+    <string name="vizo_dated_time" translatable="false">%1$s · %2$s</string>
+</resources>

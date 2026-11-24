@@ -1,0 +1,27 @@
+<resources>
+    <string name="vizo_main">Основной</string>
+    <string name="vizo_home">YAiPlayer VIZO</string>
+    <string name="vizo_add">Добавить источник</string>
+    <string name="vizo_sources">Источники</string>
+    <string name="vizo_m3u">Плейлист M3U</string>
+    <string name="vizo_xtream">Xtream Codes</string>
+    <string name="vizo_stalker">Портал Stalker</string>
+    <string name="vizo_all">Все каналы</string>
+    <string name="vizo_history">Недавно просмотренное</string>
+    <string name="vizo_favorites">Избранное</string>
+    <string name="vizo_archive">Архив</string>
+    <string name="vizo_continue">Продолжить просмотр</string>
+    <string name="vizo_account">Войти в аккаунт / Гость</string>
+    <string name="vizo_remote">Пульт управления</string>
+    <string name="vizo_search">Поиск</string>
+    <string name="vizo_guide">Телепрограмма</string>
+    <string name="vizo_settings">Настройки</string>
+    <string name="vizo_playlists">Плейлисты</string>
+    <string name="vizo_epg">Источники телепрограммы</string>
+    <string name="vizo_full_settings">Все настройки</string>
+    <string name="vizo_back">Назад</string>
+    <string name="vizo_empty">Добавьте свой плейлист или портал для просмотра каналов.</string>
+    <string name="vizo_fullscreen">На весь экран</string>
+    <string name="vizo_no_guide">Нет данных телепрограммы</string>
+    <string name="vizo_on_now">Сейчас</string>
+</resources>
