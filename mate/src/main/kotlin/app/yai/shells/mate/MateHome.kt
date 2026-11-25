@@ -25,7 +25,7 @@ import app.yai.shells.vizo.VizoText
 
 enum class MateAction {
     CONTINUE, ACCOUNT, SEARCH, CHANNELS, ARCHIVE, HISTORY, FAVORITES, MOVIES, SERIES, DOWNLOADS,
-    APPEARANCE, PLAYLISTS, GUIDE_SOURCES, PLAYER, REMOTE_SHORTCUTS, PARENTAL, SETTINGS,
+    APPEARANCE, PLAYLISTS, GUIDE_SOURCES, PLAYER, RECORDING_SETTINGS, PHONE_REMOTE, REMOTE_SHORTCUTS, PARENTAL, SETTINGS,
 }
 
 private enum class MatePage { GUIDE, LIBRARY, SETTINGS, ADD_SOURCE }
@@ -138,6 +138,8 @@ fun MateHome(
                                 ShellR.string.vizo_playlists to MateAction.PLAYLISTS,
                                 ShellR.string.vizo_epg to MateAction.GUIDE_SOURCES,
                                 R.string.mate_player to MateAction.PLAYER,
+                                R.string.mate_recording_settings to MateAction.RECORDING_SETTINGS,
+                                ShellR.string.vizo_remote to MateAction.PHONE_REMOTE,
                                 R.string.mate_controls to MateAction.REMOTE_SHORTCUTS,
                                 R.string.mate_parental to MateAction.PARENTAL,
                                 ShellR.string.vizo_account to MateAction.ACCOUNT,

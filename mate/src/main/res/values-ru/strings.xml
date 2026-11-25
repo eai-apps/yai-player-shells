@@ -7,4 +7,5 @@
     <string name="mate_controls">Кнопки пульта</string>
     <string name="mate_parental">Родительский контроль</string>
     <string name="mate_library">Библиотека</string>
+    <string name="mate_recording_settings">Просмотр и запись</string>
 </resources>

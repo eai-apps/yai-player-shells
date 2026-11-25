@@ -601,7 +601,7 @@ index 1c7cb68525e35ec0a39cc6fc331e211e781b482c..8177d78775b87492a4b18a41c6798774
                  SourceType.STALKER -> SourceKind.STALKER
                  else -> SourceKind.XTREAM
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
-index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b902ce8f569 100644
+index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6debc11d05 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
 +++ b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
 @@ -1,6 +1,7 @@
@@ -794,7 +794,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                              themeMode = themeMode,
                              uiZoomPercent = uiZoomPercent,
                              onSetZoom = onSetZoom,
-@@ -1353,11 +1395,14 @@ fun OwnTVShell(
+@@ -1353,11 +1395,15 @@ fun OwnTVShell(
                              onOpenPlaylist = {},
                              // Settings is reached through More now, so Back out of its root goes
                              // back there rather than to the rail — one level out, not two.
@@ -806,12 +806,13 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
 -                            onSourcesAddConsumed = { openSourcesAdd = false },
 +                            openSourcesType = vizoSourceType,
 +                            shellPage = shellSettingsPage,
++                            returnFromDirectPage = mateEnabled,
 +                            onShellPageConsumed = { shellSettingsPage = null },
 +                            onSourcesAddConsumed = { openSourcesAdd = false; vizoSourceType = null },
                              start = settingsStart,
                              onStartConsumed = { settingsStart = null },
                              onOpenSportsTeam = { t ->
-@@ -1370,66 +1415,174 @@ fun OwnTVShell(
+@@ -1370,66 +1416,176 @@ fun OwnTVShell(
                                  .focusGroup(),
                          ) }
  
@@ -920,17 +921,19 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
 +                                    MateAction.SERIES -> openShortcutSection(MainSection.SERIES)
 +                                    MateAction.DOWNLOADS -> openShortcutSection(MainSection.DOWNLOADS)
 +                                    MateAction.APPEARANCE -> modes.openAppearance()
-+                                    MateAction.PLAYLISTS, MateAction.GUIDE_SOURCES, MateAction.REMOTE_SHORTCUTS -> {
++                                    MateAction.PLAYLISTS, MateAction.GUIDE_SOURCES, MateAction.PHONE_REMOTE, MateAction.REMOTE_SHORTCUTS -> {
 +                                        shellSettingsPage = when (action) {
 +                                            MateAction.PLAYLISTS -> ShellSettingsPage.SOURCES
 +                                            MateAction.GUIDE_SOURCES -> ShellSettingsPage.GUIDE
++                                            MateAction.PHONE_REMOTE -> ShellSettingsPage.REMOTE
 +                                            else -> ShellSettingsPage.SHORTCUTS
 +                                        }
 +                                        openShortcutSection(MainSection.SETTINGS)
 +                                    }
-+                                    MateAction.PLAYER, MateAction.PARENTAL, MateAction.SETTINGS -> {
++                                    MateAction.PLAYER, MateAction.RECORDING_SETTINGS, MateAction.PARENTAL, MateAction.SETTINGS -> {
 +                                        val group = when (action) {
 +                                            MateAction.PLAYER -> SettingsGroup.PLAYER
++                                            MateAction.RECORDING_SETTINGS -> SettingsGroup.WATCHING
 +                                            MateAction.PARENTAL -> SettingsGroup.PROFILE
 +                                            else -> SettingsGroup.QUICK
 +                                        }
@@ -1040,7 +1043,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
  
                          selectedSection == MainSection.SEARCH -> SearchScreen(
                              vm = searchVm,
-@@ -1445,8 +1598,8 @@ fun OwnTVShell(
+@@ -1445,8 +1601,8 @@ fun OwnTVShell(
                              },
                              onGoToChannel = { ch ->
                                  restoreFocus = false
@@ -1051,7 +1054,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                                  }
                                  liveVm.revealChannel(ch)
                                  searchReturn = MainSection.LIVE_TV
-@@ -1469,14 +1622,14 @@ fun OwnTVShell(
+@@ -1469,14 +1625,14 @@ fun OwnTVShell(
                              modifier = Modifier.fillMaxSize(),
                          )
  
@@ -1068,7 +1071,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                              restoreFocus = restoreFocus,
                              onRestored = { restoreFocus = false },
                              modifier = Modifier
-@@ -1487,7 +1640,7 @@ fun OwnTVShell(
+@@ -1487,7 +1643,7 @@ fun OwnTVShell(
  
                          selectedSection == MainSection.LIVE_TV -> LiveScreen(
                              onFullscreen = { openFullscreen() },
@@ -1077,7 +1080,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                              onChildFocused = { focusedLayer = ShellLayer.CONTENT },
                              previewEnabled = playerMode == PlayerMode.NONE,
                              restoreFocus = restoreFocus,
-@@ -1514,13 +1667,14 @@ fun OwnTVShell(
+@@ -1514,13 +1670,14 @@ fun OwnTVShell(
                          )
  
                          selectedSection == MainSection.DOWNLOADS -> DownloadsScreen(
@@ -1093,7 +1096,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                              modifier = Modifier.fillMaxSize(),
                          )
  
-@@ -1534,7 +1688,7 @@ fun OwnTVShell(
+@@ -1534,7 +1691,7 @@ fun OwnTVShell(
                              onOpenLive = { onSelectSection(MainSection.LIVE_TV) },
                              onChildFocused = { focusedLayer = ShellLayer.CONTENT },
                              onEntryHook = { favoritesEntry = it },
@@ -1102,7 +1105,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                              modifier = Modifier.fillMaxSize(),
                          )
  
-@@ -1544,7 +1698,7 @@ fun OwnTVShell(
+@@ -1544,7 +1701,7 @@ fun OwnTVShell(
                              onChildFocused = { focusedLayer = ShellLayer.CONTENT },
                              onEntryHook = { sportsEntry = it },
                              active = playerMode == PlayerMode.NONE,
@@ -1111,7 +1114,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                              modifier = Modifier.fillMaxSize(),
                          )
  
-@@ -1567,7 +1721,7 @@ fun OwnTVShell(
+@@ -1567,7 +1724,7 @@ fun OwnTVShell(
                  }
              }
            }
@@ -1120,7 +1123,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                  continuePill = continueTarget?.let { target ->
                      val live = target.kind == tv.own.owntv.features.home.ContinueKind.LIVE
                      tv.own.owntv.features.shell.components.ContinuePill(
-@@ -1599,7 +1753,7 @@ fun OwnTVShell(
+@@ -1599,7 +1756,7 @@ fun OwnTVShell(
                  subscriptionBadge = subscriptionBadge.takeIf { selectedSection == MainSection.HOME },
                  modifier = Modifier.align(Alignment.TopEnd).onFocusChanged { clusterFocused = it.hasFocus }.focusGroup(),
              )
@@ -1129,7 +1132,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                  state = railState,
                  size = railSize,
                  length = navLength,
-@@ -1617,7 +1771,7 @@ fun OwnTVShell(
+@@ -1617,7 +1774,7 @@ fun OwnTVShell(
                  selectedItemFocusRequester = sidebarFocus,
                  contentFocusRequester = contentAreaFocus,
                  enterContent = when (selectedSection) {
@@ -1138,7 +1141,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                      MainSection.EPG, MainSection.LIVE_TV -> guideEntry
                      MainSection.MOVIES, MainSection.SERIES -> vodEntry
                      MainSection.DOWNLOADS -> downloadsEntry
-@@ -1739,9 +1893,26 @@ fun OwnTVShell(
+@@ -1739,9 +1896,26 @@ fun OwnTVShell(
        val exoParked = playerMode == PlayerMode.NONE && liveOnExo && multiview == null
        if (multiview == null && (playerMode == PlayerMode.FULLSCREEN || playerMode == PlayerMode.MINI || exoParked)) {
          val isFull = playerMode == PlayerMode.FULLSCREEN
@@ -1166,7 +1169,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
              } else {
                  // Dynamic docked size/position: a screen-width fraction at the chosen corner/edge, so it
                  // scales with the panel + UI zoom (never a fixed-size box).
-@@ -1887,7 +2058,14 @@ fun OwnTVShell(
+@@ -1887,7 +2061,14 @@ fun OwnTVShell(
                      onAudioMode = toAudioMode,
                      // The channel-list overlay draws ABOVE the HUD; while it's open the HUD goes inert so
                      // its hide/error focus grabs can't yank D-pad focus off the overlay.
@@ -1182,7 +1185,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                      onChannelUp = zap?.let { z -> { z(-1) } },
                      onChannelDown = zap?.let { z -> { z(1) } },
                      onOpenChannelList = if (isTunedLive && liveCanZap) { { showChannelList = true } } else null,
-@@ -2166,6 +2344,23 @@ fun OwnTVShell(
+@@ -2166,6 +2347,23 @@ fun OwnTVShell(
              }
            }
          }
@@ -1206,7 +1209,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
        }
  
      if (showExit) {
-@@ -2245,10 +2440,9 @@ fun OwnTVShell(
+@@ -2245,10 +2443,9 @@ fun OwnTVShell(
      // because this layer is on screen everywhere, the player included. Not on the Guide itself:
      // there the line beside the button, or the review window, already says it.
      val epgMatchToast = tv.own.owntv.ui.components.rememberInAppToast()
@@ -1218,7 +1221,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
      val currentGuideOnScreen by rememberUpdatedState(guideOnScreen)
      var finishedMatch by remember { mutableStateOf<tv.own.owntv.features.epg.EpgMatchSummary?>(null) }
      LaunchedEffect(epgVm) {
-@@ -2290,7 +2484,7 @@ fun OwnTVShell(
+@@ -2290,7 +2487,7 @@ fun OwnTVShell(
          val updateCheckOnStart by settingsRepo.updateCheckOnStart.collectAsStateWithLifecycle(initialValue = false)
          LaunchedEffect(updateCheckOnStart) {
              // Once per launch: a rebuilt shell must not bring the "latest version" card back.
@@ -1227,7 +1230,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
                  kotlinx.coroutines.delay(5_000)
                  shellVm.startupUpdateCheckDone = true
                  showStartupToast = true
-@@ -2298,7 +2492,6 @@ fun OwnTVShell(
+@@ -2298,7 +2495,6 @@ fun OwnTVShell(
              }
          }
          tv.own.owntv.features.update.SubscriptionExpiryHost(enabled = selectedSection != MainSection.SETTINGS && playerMode == PlayerMode.NONE)
@@ -1236,29 +1239,30 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..1b60f4b05f7f4b30dc7bedecfd162b90
              // «Посмотреть» on «Новые каналы» (owner 16.11): Live TV on that category.
              liveVm.select(tv.own.owntv.core.live.LiveKey.Custom(id))
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/components/SettingsScreen.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/components/SettingsScreen.kt
-index f62fc9eefe8cdb3f3995fdfa3a273b5914727e92..5f64719d751935087a61acc3ceebc4fd844195c7 100644
+index f62fc9eefe8cdb3f3995fdfa3a273b5914727e92..b9aea1450ed62ea3c0acc588a95a160b905d4f90 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/components/SettingsScreen.kt
 +++ b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/components/SettingsScreen.kt
 @@ -106,6 +106,8 @@ import tv.own.owntv.ui.theme.primary
  
  internal enum class TileTone { PRIMARY, SECONDARY, TERTIARY }
  
-+enum class ShellSettingsPage { SOURCES, GUIDE, SHORTCUTS }
++enum class ShellSettingsPage { SOURCES, GUIDE, SHORTCUTS, REMOTE }
 +
  private enum class SettingsTab { ROOT, LANGUAGE, SOURCES, EPG, BACKUP, LOCAL_SYNC, CUSTOMIZE, HOME, NETWORK, DNS, METADATA, OPEN_SUBTITLES, WEATHER, CH_NAV, PANEL_WIDTH, GUIDE_WIDTH, GLASS_EFFECT, CONTENT_MENUS, FONTS, BROWSING, SUBTITLE_STYLE, SPORTS, SCREENSAVER, REMOTE }
  
  @Composable
-@@ -152,6 +154,9 @@ fun SettingsScreen(
+@@ -152,6 +154,10 @@ fun SettingsScreen(
      openEpgAdd: Boolean = false,
      onEpgAddConsumed: () -> Unit = {},
      openSourcesAdd: Boolean = false,
 +    openSourcesType: tv.own.owntv.core.model.SourceType? = null,
 +    shellPage: ShellSettingsPage? = null,
++    returnFromDirectPage: Boolean = false,
 +    onShellPageConsumed: () -> Unit = {},
      onSourcesAddConsumed: () -> Unit = {},
      /** More › Settings: open at a root group, or with search open. */
      start: SettingsStart? = null,
-@@ -167,6 +172,7 @@ fun SettingsScreen(
+@@ -167,6 +173,7 @@ fun SettingsScreen(
      var consumeEpgAdd by remember { mutableStateOf(false) }
      // Deep-link from the Home's "Add source" button: jump straight to Sources in add mode.
      var consumeSourcesAdd by remember { mutableStateOf(false) }
@@ -1266,27 +1270,42 @@ index f62fc9eefe8cdb3f3995fdfa3a273b5914727e92..5f64719d751935087a61acc3ceebc4fd
      var showZoom by remember { mutableStateOf(false) }
      var showAppIcon by remember { mutableStateOf(false) }
      var showPopupSize by remember { mutableStateOf(false) }
-@@ -396,11 +402,26 @@ fun SettingsScreen(
+@@ -396,23 +403,57 @@ fun SettingsScreen(
      // Opening a sub-screen the ordinary way cancels any pending Quick-shortcut return, or the Back
      // from it would aim at the shortcut instead of the row just used.
      val open: (SettingsTab) -> Unit = { lastTab = it; deepReturnKey = null; videoRowKey = null; tab = it }
++    var directTab by rememberSaveable { mutableStateOf<SettingsTab?>(null) }
++    val leaveTab: () -> Unit = {
++        val leavesSettings = returnFromDirectPage && tab == directTab && onBack != null
++        directTab = null
++        if (leavesSettings) onBack?.invoke() else tab = SettingsTab.ROOT
++    }
 +    LaunchedEffect(shellPage) {
 +        val page = when (shellPage) {
 +            ShellSettingsPage.SOURCES -> SettingsTab.SOURCES
 +            ShellSettingsPage.GUIDE -> SettingsTab.EPG
 +            ShellSettingsPage.SHORTCUTS -> SettingsTab.CH_NAV
++            ShellSettingsPage.REMOTE -> SettingsTab.REMOTE
 +            null -> return@LaunchedEffect
 +        }
++        directTab = page
 +        open(page)
 +        onShellPageConsumed()
 +    }
      LaunchedEffect(openEpgAdd) {
-         if (openEpgAdd) { consumeEpgAdd = true; open(SettingsTab.EPG); onEpgAddConsumed() }
+-        if (openEpgAdd) { consumeEpgAdd = true; open(SettingsTab.EPG); onEpgAddConsumed() }
++        if (openEpgAdd) {
++            directTab = SettingsTab.EPG
++            consumeEpgAdd = true
++            open(SettingsTab.EPG)
++            onEpgAddConsumed()
++        }
      }
 -    LaunchedEffect(openSourcesAdd) {
 -        if (openSourcesAdd) { consumeSourcesAdd = true; open(SettingsTab.SOURCES); onSourcesAddConsumed() }
 +    LaunchedEffect(openSourcesAdd, openSourcesType) {
 +        if (openSourcesAdd) {
++            directTab = SettingsTab.SOURCES
 +            consumeSourcesAdd = true
 +            consumeSourcesType = openSourcesType
 +            open(SettingsTab.SOURCES)
@@ -1295,20 +1314,44 @@ index f62fc9eefe8cdb3f3995fdfa3a273b5914727e92..5f64719d751935087a61acc3ceebc4fd
      }
  
      // Sub-screens sit below the status cluster (StageContentTop), 6 dp in from the edges.
-@@ -411,7 +432,12 @@ fun SettingsScreen(
+     val sub = modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp, top = StageContentTop)
+     // A full page's search hands over to Settings search, keyboard up.
+-    val openSearch: () -> Unit = { lastTab = null; searchQuery = ""; searchMode = true; searchFromMore = false; searchAutoEdit = true; tab = SettingsTab.ROOT }
++    val openSearch: () -> Unit = { directTab = null; lastTab = null; searchQuery = ""; searchMode = true; searchFromMore = false; searchAutoEdit = true; tab = SettingsTab.ROOT }
+     if (tab != SettingsTab.ROOT) {
      CompositionLocalProvider(tv.own.owntv.features.settings.LocalSettingsSearch provides openSearch) {
      when (tab) {
          SettingsTab.LANGUAGE -> { LanguageSettingsScreen(onBack = { tab = SettingsTab.ROOT }, modifier = modifier) }
 -        SettingsTab.SOURCES -> { ManageSourcesScreen(onBack = { tab = SettingsTab.ROOT; consumeSourcesAdd = false }, modifier = modifier, startOnAdd = consumeSourcesAdd) }
+-        SettingsTab.EPG -> { tv.own.owntv.features.settings.EpgSourcesScreen(onBack = { tab = SettingsTab.ROOT; consumeEpgAdd = false }, modifier = modifier, startOnAdd = consumeEpgAdd) }
 +        SettingsTab.SOURCES -> ManageSourcesScreen(
-+            onBack = { tab = SettingsTab.ROOT; consumeSourcesAdd = false; consumeSourcesType = null },
++            onBack = { consumeSourcesAdd = false; consumeSourcesType = null; leaveTab() },
 +            modifier = modifier,
 +            startOnAdd = consumeSourcesAdd || consumeSourcesType != null,
 +            startSourceType = consumeSourcesType,
 +        )
-         SettingsTab.EPG -> { tv.own.owntv.features.settings.EpgSourcesScreen(onBack = { tab = SettingsTab.ROOT; consumeEpgAdd = false }, modifier = modifier, startOnAdd = consumeEpgAdd) }
++        SettingsTab.EPG -> { tv.own.owntv.features.settings.EpgSourcesScreen(onBack = { consumeEpgAdd = false; leaveTab() }, modifier = modifier, startOnAdd = consumeEpgAdd) }
          SettingsTab.BACKUP -> { BackupScreen(onBack = { tab = SettingsTab.ROOT }, modifier = sub) }
          SettingsTab.LOCAL_SYNC -> { LocalSyncScreen(onBack = { tab = SettingsTab.ROOT }, modifier = sub) }
+         SettingsTab.CUSTOMIZE -> { CustomizeScreen(onBack = { tab = SettingsTab.ROOT }, modifier = modifier) }
+@@ -423,7 +464,7 @@ fun SettingsScreen(
+         SettingsTab.METADATA -> { tv.own.owntv.features.settings.MetadataSettingsScreen(onBack = { tab = SettingsTab.ROOT }, modifier = modifier) }
+         SettingsTab.OPEN_SUBTITLES -> { tv.own.owntv.features.settings.OpenSubtitlesAccountScreen(onBack = { tab = SettingsTab.ROOT }, modifier = modifier) }
+         SettingsTab.WEATHER -> { tv.own.owntv.features.settings.WeatherSettingsScreen(onBack = { tab = SettingsTab.ROOT }, modifier = modifier) }
+-        SettingsTab.CH_NAV -> { tv.own.owntv.features.settings.ChNavSettingsScreen(onBack = { tab = SettingsTab.ROOT }, modifier = modifier) }
++        SettingsTab.CH_NAV -> { tv.own.owntv.features.settings.ChNavSettingsScreen(onBack = leaveTab, modifier = modifier) }
+         SettingsTab.CONTENT_MENUS -> { tv.own.owntv.features.settings.ContentMenuSettingsScreen(onBack = { tab = SettingsTab.ROOT }, modifier = modifier) }
+             SettingsTab.PANEL_WIDTH -> { tv.own.owntv.features.settings.PanelWidthSettingsScreen(onBack = { tab = SettingsTab.ROOT }, modifier = modifier) }
+             SettingsTab.GUIDE_WIDTH -> { tv.own.owntv.features.settings.GuideWidthSettingsScreen(onBack = { tab = SettingsTab.ROOT }, modifier = modifier) }
+@@ -435,7 +476,7 @@ fun SettingsScreen(
+                 current = fontCustomization, onSet = onSetFontCustomization, familyLabel = { fontFamilyLabel(it) },
+                 onBack = { tab = SettingsTab.ROOT }, modifier = modifier,
+             )
+-            SettingsTab.REMOTE -> { tv.own.owntv.extras.remote.PhoneRemoteSettingsScreen(onBack = { tab = SettingsTab.ROOT }, modifier = modifier) }
++            SettingsTab.REMOTE -> { tv.own.owntv.extras.remote.PhoneRemoteSettingsScreen(onBack = leaveTab, modifier = modifier) }
+             SettingsTab.ROOT -> Unit
+     }
+     }
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/player/PlayerHud.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/player/PlayerHud.kt
 index 6a40edfe5f8cf07a2e21af4378ec910ad492b308..658709efd457752d8476c81327315fae9487f456 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/player/PlayerHud.kt
