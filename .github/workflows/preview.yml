@@ -153,7 +153,7 @@ jobs:
           PY
           cat > notes.md <<'EOF'
           YAiPlayer Shells для телефона и ТВ. Обновления проверяются при запуске и в настройках приложения.
-          Эта версия открывает отдельный канал обновлений Shells и использует постоянную подпись.
+          Mate для приставки: телегид, архив, поиск передач, библиотека с записями и программа канала по кнопке «Вправо» в полноэкранном эфире.
           При переходе со старых тестовых APK shells-preview потребуется переустановка тестового приложения.
           EOF
           gh release create "$tag" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest --title "YAiPlayer Shells ${tag#v}" --notes-file notes.md
