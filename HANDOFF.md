@@ -10,3 +10,10 @@
 - **Сборка:** штатный `assembleStandardDebug` с JDK 25, Android SDK 37.0 и собственным ядром из исходной ревизии. Для мобильного варианта CI дополнительно вкладывает штатный ТВ-лаунчер через JDK 17, как в исходном CI YAiPlayer. Идентификаторы `com.yai.iptv.player.mobile.shells` и `com.yai.iptv.player.tv.shells`, официальное самообновление отключено. Основной релиз и бета YAiPlayer не входят в процесс.
 - **Проверка:** `preview.yml` собирает оба APK, проверяет debug-подпись, отдельные ID, ARM ABI и состав DEX. Только после обеих проверок публикуется отдельный предварительный релиз с APK, контрольными суммами и соответствующим исходным кодом GPLv3. Исходный репозиторий YAiPlayer используется только для чтения.
 - **После установки:** проверить вход и гостя, переключение из стартовых настроек и возврат в Classic, сохранение оформления после перезапуска, четыре направления D-pad в Mate, EPG и архив, M3U/Xtream/Stalker, продолжение просмотра, настоящий поток и полноэкранный режим. Эти проверки на физических устройствах пока не проводились.
+
+## Результат сборки
+
+- Коммит оболочек: 6abf1cdb8e1671dcd4c0b96b28a22e1316e4caf0. [GitHub Actions](https://github.com/eai-apps/yai-player-shells/actions/runs/45524080598) и [предварительный релиз shells-preview-1.1](https://github.com/eai-apps/yai-player-shells/releases/tag/shells-preview-1.1).
+- Локальная папка результатов: local-build/shells-preview-1.1. В ней два APK, архив соответствующих исходников и SHA256SUMS.txt. Подписи, package ID, архитектуры ARM и состав DEX проверены после скачивания. Установка и проверка потоков на физических устройствах ещё не выполнялись.
+- [Исходники и скрипты libmpv 2026.10.4](https://github.com/ahXN00/OwnTV_libmpv/releases/tag/v2026.10.4). Файл buildscripts/include/depinfo.sh на теге фиксирует версии mpv, FFmpeg и других нативных зависимостей.
+- Для воспроизведения распакуй архив в соседние папки YAiPlayer и yai-player-shells. В нужном Android-клиенте запусти gradlew :app:assembleStandardDebug -Powntv.corePath=../owntv-core. Для мобильного полного APK собери ТВ-лаунчер под JDK 17 по шагу из preview.yml. Подробности проверок есть в workflow.
