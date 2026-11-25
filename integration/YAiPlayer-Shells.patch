@@ -488,7 +488,7 @@ index 1c7cb68525e35ec0a39cc6fc331e211e781b482c..8177d78775b87492a4b18a41c6798774
                  SourceType.STALKER -> SourceKind.STALKER
                  else -> SourceKind.XTREAM
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
-index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266e2b9d603 100644
+index 23c57c213a17db35a98cfe5fa4491792ec999fd1..e9bc6fc6379e266a6f82fc5c345055c272b922b0 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
 +++ b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
 @@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
@@ -638,7 +638,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
                              start = settingsStart,
                              onStartConsumed = { settingsStart = null },
                              onOpenSportsTeam = { t ->
-@@ -1370,66 +1404,167 @@ fun OwnTVShell(
+@@ -1370,66 +1404,172 @@ fun OwnTVShell(
                                  .focusGroup(),
                          ) }
  
@@ -731,8 +731,13 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
 +                                    MateAction.CONTINUE -> continueLastWatched()
 +                                    MateAction.ACCOUNT -> onSwitchProfile()
 +                                    MateAction.SEARCH -> openShortcutSection(MainSection.SEARCH)
-+                                    MateAction.CHANNELS, MateAction.HISTORY -> {
-+                                        liveVm.select(if (action == MateAction.HISTORY) tv.own.owntv.core.live.LiveKey.History else tv.own.owntv.core.live.LiveKey.All)
++                                    MateAction.CHANNELS, MateAction.HISTORY, MateAction.ARCHIVE -> {
++                                        val category = when (action) {
++                                            MateAction.HISTORY -> tv.own.owntv.core.live.LiveKey.History
++                                            MateAction.ARCHIVE -> tv.own.owntv.core.live.LiveKey.Catchup
++                                            else -> tv.own.owntv.core.live.LiveKey.All
++                                        }
++                                        liveVm.select(category)
 +                                        liveVm.setLiveView(tv.own.owntv.core.settings.SettingsRepository.LiveView.LIST)
 +                                        openShortcutSection(MainSection.LIVE_TV)
 +                                    }
@@ -860,7 +865,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
  
                          selectedSection == MainSection.SEARCH -> SearchScreen(
                              vm = searchVm,
-@@ -1520,7 +1655,7 @@ fun OwnTVShell(
+@@ -1520,7 +1660,7 @@ fun OwnTVShell(
                              restoreFocus = restoreFocus,
                              onRestored = { restoreFocus = false },
                              onEntryHook = { downloadsEntry = it },
@@ -869,7 +874,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
                              modifier = Modifier.fillMaxSize(),
                          )
  
-@@ -1534,7 +1669,7 @@ fun OwnTVShell(
+@@ -1534,7 +1674,7 @@ fun OwnTVShell(
                              onOpenLive = { onSelectSection(MainSection.LIVE_TV) },
                              onChildFocused = { focusedLayer = ShellLayer.CONTENT },
                              onEntryHook = { favoritesEntry = it },
@@ -878,7 +883,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
                              modifier = Modifier.fillMaxSize(),
                          )
  
-@@ -1544,7 +1679,7 @@ fun OwnTVShell(
+@@ -1544,7 +1684,7 @@ fun OwnTVShell(
                              onChildFocused = { focusedLayer = ShellLayer.CONTENT },
                              onEntryHook = { sportsEntry = it },
                              active = playerMode == PlayerMode.NONE,
@@ -887,7 +892,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
                              modifier = Modifier.fillMaxSize(),
                          )
  
-@@ -1567,7 +1702,7 @@ fun OwnTVShell(
+@@ -1567,7 +1707,7 @@ fun OwnTVShell(
                  }
              }
            }
@@ -896,7 +901,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
                  continuePill = continueTarget?.let { target ->
                      val live = target.kind == tv.own.owntv.features.home.ContinueKind.LIVE
                      tv.own.owntv.features.shell.components.ContinuePill(
-@@ -1599,7 +1734,7 @@ fun OwnTVShell(
+@@ -1599,7 +1739,7 @@ fun OwnTVShell(
                  subscriptionBadge = subscriptionBadge.takeIf { selectedSection == MainSection.HOME },
                  modifier = Modifier.align(Alignment.TopEnd).onFocusChanged { clusterFocused = it.hasFocus }.focusGroup(),
              )
@@ -905,7 +910,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
                  state = railState,
                  size = railSize,
                  length = navLength,
-@@ -1617,7 +1752,7 @@ fun OwnTVShell(
+@@ -1617,7 +1757,7 @@ fun OwnTVShell(
                  selectedItemFocusRequester = sidebarFocus,
                  contentFocusRequester = contentAreaFocus,
                  enterContent = when (selectedSection) {
@@ -914,7 +919,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
                      MainSection.EPG, MainSection.LIVE_TV -> guideEntry
                      MainSection.MOVIES, MainSection.SERIES -> vodEntry
                      MainSection.DOWNLOADS -> downloadsEntry
-@@ -1739,9 +1874,24 @@ fun OwnTVShell(
+@@ -1739,9 +1879,24 @@ fun OwnTVShell(
        val exoParked = playerMode == PlayerMode.NONE && liveOnExo && multiview == null
        if (multiview == null && (playerMode == PlayerMode.FULLSCREEN || playerMode == PlayerMode.MINI || exoParked)) {
          val isFull = playerMode == PlayerMode.FULLSCREEN
@@ -940,7 +945,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
              } else {
                  // Dynamic docked size/position: a screen-width fraction at the chosen corner/edge, so it
                  // scales with the panel + UI zoom (never a fixed-size box).
-@@ -1887,7 +2037,14 @@ fun OwnTVShell(
+@@ -1887,7 +2042,14 @@ fun OwnTVShell(
                      onAudioMode = toAudioMode,
                      // The channel-list overlay draws ABOVE the HUD; while it's open the HUD goes inert so
                      // its hide/error focus grabs can't yank D-pad focus off the overlay.
@@ -956,7 +961,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
                      onChannelUp = zap?.let { z -> { z(-1) } },
                      onChannelDown = zap?.let { z -> { z(1) } },
                      onOpenChannelList = if (isTunedLive && liveCanZap) { { showChannelList = true } } else null,
-@@ -2166,6 +2323,21 @@ fun OwnTVShell(
+@@ -2166,6 +2328,21 @@ fun OwnTVShell(
              }
            }
          }

@@ -24,7 +24,7 @@ import app.yai.shells.vizo.VizoSource
 import app.yai.shells.vizo.VizoText
 
 enum class MateAction {
-    CONTINUE, ACCOUNT, SEARCH, CHANNELS, HISTORY, FAVORITES, MOVIES, SERIES, DOWNLOADS,
+    CONTINUE, ACCOUNT, SEARCH, CHANNELS, HISTORY, ARCHIVE, FAVORITES, MOVIES, SERIES, DOWNLOADS,
     APPEARANCE, PLAYLISTS, GUIDE_SOURCES, PLAYER, REMOTE_SHORTCUTS, PARENTAL, SETTINGS,
 }
 
@@ -53,6 +53,7 @@ fun MateHome(
         if (canContinue) add(ShellR.string.vizo_continue to MateAction.CONTINUE)
         add(R.string.mate_live to MateAction.CHANNELS)
         add(ShellR.string.vizo_history to MateAction.HISTORY)
+        if (hasSources) add(ShellR.string.vizo_archive to MateAction.ARCHIVE)
         add(ShellR.string.vizo_favorites to MateAction.FAVORITES)
         add(ShellR.string.vizo_search to MateAction.SEARCH)
         add(R.string.mate_movies to MateAction.MOVIES)
