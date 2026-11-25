@@ -384,6 +384,22 @@ index 29fafc04da29fb61817a740a0c4b3866f56da40a..414741a62f2e1d024145d0d25a327e4e
 +    .getOrElse(rootDir.resolve("../../../yai-player-shells/vizo"))
  // Records the baseline profile against :app. Never built by CI — recording needs a real device.
  include(":baselineprofile")
+diff --git a/clients/android-mobile/tools/i18n/safe_literals.txt b/clients/android-mobile/tools/i18n/safe_literals.txt
+index aa4664355c89c1f307f108b831997761cc14302b..576e4751a10b5baa1e0bec551eaf9a76e2e531b8 100644
+--- a/clients/android-mobile/tools/i18n/safe_literals.txt
++++ b/clients/android-mobile/tools/i18n/safe_literals.txt
+@@ -519,9 +519,8 @@
+ 1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	pip_action
+ 1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	toggle
+ 1	protocol	app/src/main/java/tv/own/owntv/mobile/MainActivity.kt	tv.own.owntv.mobile.PIP
+-1	technical	app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt	YAiPlayer-Mobile
+-1	technical	app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt	beta
+-1	technical	app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt	eai-apps/YAiPlayer
++1	technical	app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt	YAiPlayer-Shells-mobile
++1	technical	app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt	eai-apps/yai-player-shells
+ 1	technical	app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt	image_cache
+ 1	protocol	app/src/main/java/tv/own/owntv/mobile/cast/CastPlaybackEngine.kt	CAST
+ 1	file-path	app/src/main/java/tv/own/owntv/mobile/cast/CastRequest.kt	.aac
 diff --git a/clients/android-tv/app/build.gradle.kts b/clients/android-tv/app/build.gradle.kts
 index 83efd74d3f258da26b83462b81e3a0ea3ac39b45..f64e350338a271f4f601c01ebdcd62fec7bf8b43 100644
 --- a/clients/android-tv/app/build.gradle.kts
@@ -1185,6 +1201,22 @@ index 0e39a6de0ca4f68d93500e2e7355045645ce3fa3..654f5d3a6a98df59e1f63075fe2a2b9d
  // Baseline-profile generator. Test-only module: it ships nothing to users, it records
  // the cold-start journey on a device and writes the profile :app packages.
  include(":baselineprofile")
+diff --git a/clients/android-tv/tools/i18n/safe_literals.txt b/clients/android-tv/tools/i18n/safe_literals.txt
+index 12501d6587a697ca9db6e7e07cbdd4f2722af3d3..00a8040bfec900c31ed37f23ed179dd49475f6e3 100644
+--- a/clients/android-tv/tools/i18n/safe_literals.txt
++++ b/clients/android-tv/tools/i18n/safe_literals.txt
+@@ -36,9 +36,8 @@
+ 1	performance	app/src/main/java/tv/own/owntv/MainActivity.kt	profile-id-loaded
+ 1	performance	app/src/main/java/tv/own/owntv/MainActivity.kt	profiles-loaded
+ 2	log	app/src/main/java/tv/own/owntv/OwnTVApp.kt	DEPRECATION
+-1	technical	app/src/main/java/tv/own/owntv/OwnTVApp.kt	YAiPlayer-TV
+-1	technical	app/src/main/java/tv/own/owntv/OwnTVApp.kt	beta
+-1	technical	app/src/main/java/tv/own/owntv/OwnTVApp.kt	eai-apps/YAiPlayer
++1	technical	app/src/main/java/tv/own/owntv/OwnTVApp.kt	YAiPlayer-Shells-tv
++1	technical	app/src/main/java/tv/own/owntv/OwnTVApp.kt	eai-apps/yai-player-shells
+ 1	file-path	app/src/main/java/tv/own/owntv/OwnTVApp.kt	image_cache
+ 1	performance	app/src/main/java/tv/own/owntv/OwnTVApp.kt	koin-started
+ 1	log	app/src/main/java/tv/own/owntv/OwnTVApp.kt	memory trim level=$level; ${tv.own.owntv.core.util.MainThreadWatchdog.memory(this)}
 diff --git a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileVizoHome.kt b/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileVizoHome.kt
 new file mode 100644
 index 0000000000000000000000000000000000000000..4aedcd6c3f1cca56ff56f34acf03a906bb4b3bdc
