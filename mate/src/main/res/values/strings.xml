@@ -1,5 +1,4 @@
 <resources>
-    <string name="mate_guide">On now</string>
     <string name="mate_live">Channels</string>
     <string name="mate_downloads">Recordings &amp; downloads</string>
     <string name="mate_movies">Movies</string>
@@ -8,4 +7,6 @@
     <string name="mate_controls">Remote shortcuts</string>
     <string name="mate_parental">Parental controls</string>
     <string name="mate_brand" translatable="false">YAiPlayer Mate</string>
+    <string name="mate_library">Library</string>
+    <string name="mate_recording_settings">Watching and recording</string>
 </resources>

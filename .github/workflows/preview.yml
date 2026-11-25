@@ -63,26 +63,41 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleRelease --no-daemon
           install -D app/build/outputs/apk/release/app-release.apk ../android-mobile/app/src/main/assets/tvoptimizer/launcher.apk
-      - name: Build isolated preview APK
+      - name: Build and sign the Shells APK
         working-directory: YAiPlayer/clients/android-${{ matrix.platform }}
         env:
-          VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 0.1.${{ github.run_number }}-shells.${{ github.run_attempt }}
+          SHELLS_SIGNING_BUNDLE: ${{ secrets.SHELLS_SIGNING_BUNDLE }}
         run: |
+          set -euo pipefail
+          export KEYSTORE_FILE="$RUNNER_TEMP/yai-shells.p12"
+          trap 'rm -f "$KEYSTORE_FILE"' EXIT
+          test -n "$SHELLS_SIGNING_BUNDLE"
+          umask 077
+          jq -er '.keystore' <<< "$SHELLS_SIGNING_BUNDLE" | base64 --decode > "$KEYSTORE_FILE"
+          KEYSTORE_PASSWORD="$(jq -er '.password' <<< "$SHELLS_SIGNING_BUNDLE")"
+          echo "::add-mask::$KEYSTORE_PASSWORD"
+          export KEYSTORE_PASSWORD KEY_PASSWORD="$KEYSTORE_PASSWORD" KEY_ALIAS=yai-shells
+          unset SHELLS_SIGNING_BUNDLE
+          attempt=$((10#$GITHUB_RUN_ATTEMPT))
+          test "$attempt" -lt 100
+          export VERSION_CODE=$((10#$GITHUB_RUN_NUMBER * 100 + attempt))
+          export VERSION_NAME="0.2.$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"
           chmod +x gradlew
-          ./gradlew :app:assembleStandardDebug -Powntv.corePath="$GITHUB_WORKSPACE/YAiPlayer/clients/owntv-core" --max-workers=4 --no-daemon --stacktrace
+          ./gradlew :app:assembleStandardRelease -Pshells.updates=true -Powntv.corePath="$GITHUB_WORKSPACE/YAiPlayer/clients/owntv-core" --max-workers=4 --no-daemon --stacktrace
       - name: Verify package, signature and shell classes
         env:
           TARGET_PLATFORM: ${{ matrix.platform }}
         run: |
-          mapfile -t files < <(find "YAiPlayer/clients/android-$TARGET_PLATFORM/app/build/outputs/apk/standard/debug" -maxdepth 1 -name '*.apk')
+          mapfile -t files < <(find "YAiPlayer/clients/android-$TARGET_PLATFORM/app/build/outputs/apk/standard/release" -maxdepth 1 -name '*.apk')
           test "${#files[@]}" -eq 1
           mkdir -p dist
           apk="dist/YAiPlayer-Shells-$TARGET_PLATFORM.apk"
           cp "${files[0]}" "$apk"
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$apk" > certificate.txt
+          grep -Fx "Signer #1 certificate SHA-256 digest: $(cat yai-player-shells/integration/signing-cert.sha256)" certificate.txt
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" > badging.txt
-          grep -F "package: name='com.yai.iptv.player.$TARGET_PLATFORM.shells'" badging.txt
+          grep -F "package: name='com.yai.iptv.player.$TARGET_PLATFORM.shells' versionCode='$((10#$GITHUB_RUN_NUMBER * 100 + 10#$GITHUB_RUN_ATTEMPT))' versionName='0.2.$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT'" badging.txt
+          grep -F 'android.permission.REQUEST_INSTALL_PACKAGES' badging.txt
           python3 yai-player-shells/integration/verify_apk.py "$apk" "$TARGET_PLATFORM"
       - uses: actions/upload-artifact@v4
         with:
@@ -122,12 +137,24 @@ jobs:
           cp yai-player-shells/integration/COPYING source/COPYING
           tar -C source -czf dist/YAiPlayer-Shells-corresponding-source.tar.gz .
           (cd dist && sha256sum *.apk *.tar.gz > SHA256SUMS.txt)
-      - name: Publish the separate preview
+      - name: Publish the Shells update
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          tag="v0.2.$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"
+          published="$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName // ""')"
+          python3 - "$tag" "$published" <<'PY'
+          import sys
+          def version(tag):
+              return tuple(map(int, tag.removeprefix("v").split(".")))
+          tag, published = sys.argv[1:]
+          if published and version(tag) <= version(published):
+              raise SystemExit("Refusing to publish a version older than or equal to the current Shells release")
+          PY
           cat > notes.md <<'EOF'
-          Отдельная тестовая сборка YAiPlayer Shells. На телефоне доступны Classic и Vizo, на приставке Classic, Vizo и Mate. Выбор находится в «Настройки → Тема оформления».
-          Пакеты APK подписаны для тестирования и имеют суффикс Android-пакета .shells. Соответствующий исходный код сборок предоставляется по GPLv3.
+          YAiPlayer Shells для телефона и ТВ. Обновления проверяются при запуске и в настройках приложения.
+          Mate для приставки: телегид, архив, поиск передач, библиотека с записями и программа канала по кнопке «Вправо» в полноэкранном эфире.
+          При переходе со старых тестовых APK shells-preview потребуется переустановка тестового приложения.
           EOF
-          gh release create "shells-preview-$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title "YAiPlayer Shells $GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT" --notes-file notes.md
+          gh release create "$tag" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest --title "YAiPlayer Shells ${tag#v}" --notes-file notes.md

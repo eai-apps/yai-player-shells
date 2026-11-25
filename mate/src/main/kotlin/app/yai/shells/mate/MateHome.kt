@@ -24,11 +24,11 @@ import app.yai.shells.vizo.VizoSource
 import app.yai.shells.vizo.VizoText
 
 enum class MateAction {
-    CONTINUE, ACCOUNT, SEARCH, CHANNELS, HISTORY, ARCHIVE, FAVORITES, MOVIES, SERIES, DOWNLOADS,
-    APPEARANCE, PLAYLISTS, GUIDE_SOURCES, PLAYER, REMOTE_SHORTCUTS, PARENTAL, SETTINGS,
+    CONTINUE, ACCOUNT, SEARCH, CHANNELS, ARCHIVE, HISTORY, FAVORITES, MOVIES, SERIES, DOWNLOADS,
+    APPEARANCE, PLAYLISTS, GUIDE_SOURCES, PLAYER, RECORDING_SETTINGS, PHONE_REMOTE, REMOTE_SHORTCUTS, PARENTAL, SETTINGS,
 }
 
-private enum class MatePage { GUIDE, ADD_SOURCE, SETTINGS }
+private enum class MatePage { GUIDE, LIBRARY, SETTINGS, ADD_SOURCE }
 
 @Composable
 fun MateHome(
@@ -36,6 +36,7 @@ fun MateHome(
     hasSources: Boolean,
     canContinue: Boolean,
     homeFocus: FocusRequester,
+    onEnterGuide: () -> Unit,
     onAction: (MateAction) -> Unit,
     onAddSource: (VizoSource) -> Unit,
     modifier: Modifier = Modifier,
@@ -43,24 +44,29 @@ fun MateHome(
 ) {
     var page by rememberSaveable { mutableStateOf(MatePage.GUIDE) }
     val panelFocus = remember { FocusRequester() }
-    BackHandler(page != MatePage.GUIDE) { page = MatePage.GUIDE }
+    BackHandler(page != MatePage.GUIDE) {
+        page = if (page == MatePage.ADD_SOURCE && hasSources) MatePage.SETTINGS else MatePage.GUIDE
+    }
     LaunchedEffect(page) {
         withFrameNanos { }
         if (page == MatePage.GUIDE) homeFocus.requestFocus() else panelFocus.requestFocus()
     }
 
-    val navigation = buildList {
+    val shortcuts = buildList {
         if (canContinue) add(ShellR.string.vizo_continue to MateAction.CONTINUE)
-        add(R.string.mate_live to MateAction.CHANNELS)
-        add(ShellR.string.vizo_history to MateAction.HISTORY)
-        if (hasSources) add(ShellR.string.vizo_archive to MateAction.ARCHIVE)
-        add(ShellR.string.vizo_favorites to MateAction.FAVORITES)
-        add(ShellR.string.vizo_search to MateAction.SEARCH)
-        add(R.string.mate_movies to MateAction.MOVIES)
-        add(R.string.mate_series to MateAction.SERIES)
-        add(R.string.mate_downloads to MateAction.DOWNLOADS)
-        add(ShellR.string.vizo_account to MateAction.ACCOUNT)
+        if (hasSources) {
+            add(R.string.mate_live to MateAction.CHANNELS)
+            add(ShellR.string.vizo_archive to MateAction.ARCHIVE)
+            add(ShellR.string.vizo_search to MateAction.SEARCH)
+        }
     }
+    val library = listOf(
+        ShellR.string.vizo_favorites to MateAction.FAVORITES,
+        ShellR.string.vizo_history to MateAction.HISTORY,
+        R.string.mate_downloads to MateAction.DOWNLOADS,
+        R.string.mate_movies to MateAction.MOVIES,
+        R.string.mate_series to MateAction.SERIES,
+    )
 
     Column(modifier.fillMaxSize().background(palette.background).padding(18.dp)) {
         Row(
@@ -70,7 +76,6 @@ fun MateHome(
         ) {
             Box(Modifier.size(13.dp).clip(RoundedCornerShape(4.dp)).background(palette.accent))
             VizoText(stringResource(R.string.mate_brand), palette.text, Modifier.weight(1f), size = 25, strong = true)
-            VizoText(stringResource(R.string.mate_guide), palette.muted, size = 15)
         }
         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Column(
@@ -78,15 +83,22 @@ fun MateHome(
                     .background(palette.surface).verticalScroll(rememberScrollState()).focusGroup().padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                VizoButton(stringResource(ShellR.string.vizo_guide), palette, { page = MatePage.GUIDE },
+                VizoButton(stringResource(ShellR.string.vizo_guide), palette, {
+                    if (page == MatePage.GUIDE && hasSources) onEnterGuide() else page = MatePage.GUIDE
+                },
                     Modifier.fillMaxWidth().focusRequester(homeFocus), accent = page == MatePage.GUIDE)
-                VizoButton(stringResource(ShellR.string.vizo_add), palette, { page = MatePage.ADD_SOURCE },
-                    Modifier.fillMaxWidth(), accent = page == MatePage.ADD_SOURCE)
-                VizoButton(stringResource(ShellR.string.vizo_settings), palette, { page = MatePage.SETTINGS },
-                    Modifier.fillMaxWidth(), accent = page == MatePage.SETTINGS)
-                navigation.forEach { (label, action) ->
+                shortcuts.forEach { (label, action) ->
                     VizoButton(stringResource(label), palette, { onAction(action) }, Modifier.fillMaxWidth())
                 }
+                if (hasSources) {
+                    VizoButton(stringResource(R.string.mate_library), palette, { page = MatePage.LIBRARY },
+                        Modifier.fillMaxWidth(), accent = page == MatePage.LIBRARY)
+                } else {
+                    VizoButton(stringResource(ShellR.string.vizo_add), palette, { page = MatePage.ADD_SOURCE },
+                        Modifier.fillMaxWidth(), accent = page == MatePage.ADD_SOURCE)
+                }
+                VizoButton(stringResource(ShellR.string.vizo_settings), palette, { page = MatePage.SETTINGS },
+                    Modifier.fillMaxWidth(), accent = page == MatePage.SETTINGS)
             }
             Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(16.dp)).background(palette.surface)) {
                 if (page == MatePage.GUIDE && hasSources) {
@@ -106,28 +118,38 @@ fun MateHome(
                             .verticalScroll(rememberScrollState()).padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        VizoText(
-                            stringResource(if (page == MatePage.ADD_SOURCE) ShellR.string.vizo_sources else ShellR.string.vizo_settings),
-                            palette.text, size = 22, strong = true,
-                        )
+                        val title = when (page) {
+                            MatePage.LIBRARY -> R.string.mate_library
+                            MatePage.ADD_SOURCE -> ShellR.string.vizo_sources
+                            else -> ShellR.string.vizo_settings
+                        }
+                        VizoText(stringResource(title), palette.text, size = 22, strong = true)
                         if (page == MatePage.ADD_SOURCE) {
                             VizoButton(stringResource(ShellR.string.vizo_m3u), palette, { onAddSource(VizoSource.M3U) },
                                 Modifier.fillMaxWidth().focusRequester(panelFocus))
                             VizoButton(stringResource(ShellR.string.vizo_xtream), palette, { onAddSource(VizoSource.XTREAM) }, Modifier.fillMaxWidth())
                             VizoButton(stringResource(ShellR.string.vizo_stalker), palette, { onAddSource(VizoSource.STALKER) }, Modifier.fillMaxWidth())
                         } else {
-                            val options = listOf(
-                                ShellR.string.shell_appearance to MateAction.APPEARANCE,
+                            if (page == MatePage.SETTINGS) {
+                                VizoButton(stringResource(ShellR.string.vizo_add), palette, { page = MatePage.ADD_SOURCE },
+                                    Modifier.fillMaxWidth().focusRequester(panelFocus))
+                            }
+                            val options = if (page == MatePage.LIBRARY) library else listOf(
                                 ShellR.string.vizo_playlists to MateAction.PLAYLISTS,
                                 ShellR.string.vizo_epg to MateAction.GUIDE_SOURCES,
                                 R.string.mate_player to MateAction.PLAYER,
+                                R.string.mate_recording_settings to MateAction.RECORDING_SETTINGS,
+                                ShellR.string.vizo_remote to MateAction.PHONE_REMOTE,
                                 R.string.mate_controls to MateAction.REMOTE_SHORTCUTS,
                                 R.string.mate_parental to MateAction.PARENTAL,
+                                ShellR.string.vizo_account to MateAction.ACCOUNT,
+                                ShellR.string.shell_appearance to MateAction.APPEARANCE,
                                 ShellR.string.vizo_full_settings to MateAction.SETTINGS,
                             )
-                            options.forEach { (label, action) ->
+                            options.forEachIndexed { index, (label, action) ->
+                                val button = Modifier.fillMaxWidth()
                                 VizoButton(stringResource(label), palette, { onAction(action) },
-                                    if (action == MateAction.APPEARANCE) Modifier.fillMaxWidth().focusRequester(panelFocus) else Modifier.fillMaxWidth())
+                                    if (page == MatePage.LIBRARY && index == 0) button.focusRequester(panelFocus) else button)
                             }
                         }
                     }

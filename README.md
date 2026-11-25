@@ -4,7 +4,11 @@
 
 На стартовом экране рядом с аккаунтом, гостем и радио выберите **Настройки → Тема оформления**. Выбор сохраняется на устройстве. В Vizo и Mate смена оформления также доступна из меню режима.
 
-- [Тестовые APK и исходники сборок](https://github.com/eai-apps/yai-player-shells/releases)
+- [Последний APK для телефона](https://github.com/eai-apps/yai-player-shells/releases/latest/download/YAiPlayer-Shells-mobile.apk)
+- [Последний APK для приставки](https://github.com/eai-apps/yai-player-shells/releases/latest/download/YAiPlayer-Shells-tv.apk)
+- [Версии и соответствующие исходники](https://github.com/eai-apps/yai-player-shells/releases)
+
+Приложение проверяет обновления при запуске. Проверить вручную можно в настройках. Установку подтверждает Android. Для перехода со старых сборок shells-preview нужно один раз переустановить тестовое приложение из-за смены подписи.
 - [Сборка и воспроизведение](integration/README.md)
 - [HANDOFF для Claude](HANDOFF.md)
 
