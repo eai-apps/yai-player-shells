@@ -1,0 +1,10 @@
+<resources>
+    <string name="mate_guide">Сейчас в эфире</string>
+    <string name="mate_live">Каналы</string>
+    <string name="mate_downloads">Записи и загрузки</string>
+    <string name="mate_movies">Фильмы</string>
+    <string name="mate_series">Сериалы</string>
+    <string name="mate_player">Воспроизведение</string>
+    <string name="mate_controls">Кнопки пульта</string>
+    <string name="mate_parental">Родительский контроль</string>
+</resources>

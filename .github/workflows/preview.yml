@@ -1,0 +1,132 @@
+name: Shells preview APKs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'vizo/**'
+      - 'mate/**'
+      - 'integration/**'
+      - 'settings.gradle.kts'
+      - '.github/workflows/preview.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shells-preview-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Android ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [mobile, tv]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: yai-player-shells
+      - uses: actions/checkout@v4
+        with:
+          repository: eai-apps/YAiPlayer
+          ref: 12e6f959002244ec7b38b896a3a191e425ec6b58
+          path: YAiPlayer
+          persist-credentials: false
+      - name: Apply the local preview integration
+        run: git -C YAiPlayer apply ../yai-player-shells/integration/YAiPlayer-Shells.patch
+      - uses: actions/setup-java@v4
+        if: matrix.platform == 'mobile'
+        id: launcher_jdk
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Bundle the existing TV optimizer launcher
+        if: matrix.platform == 'mobile'
+        working-directory: YAiPlayer/clients/tv-launcher
+        env:
+          JAVA_HOME: ${{ steps.launcher_jdk.outputs.path }}
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon
+          install -D app/build/outputs/apk/release/app-release.apk ../android-mobile/app/src/main/assets/tvoptimizer/launcher.apk
+      - name: Build isolated preview APK
+        working-directory: YAiPlayer/clients/android-${{ matrix.platform }}
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 0.1.${{ github.run_number }}-shells.${{ github.run_attempt }}
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleStandardDebug -Powntv.corePath="$GITHUB_WORKSPACE/YAiPlayer/clients/owntv-core" --max-workers=4 --no-daemon --stacktrace
+      - name: Verify package, signature and shell classes
+        env:
+          TARGET_PLATFORM: ${{ matrix.platform }}
+        run: |
+          mapfile -t files < <(find "YAiPlayer/clients/android-$TARGET_PLATFORM/app/build/outputs/apk/standard/debug" -maxdepth 1 -name '*.apk')
+          test "${#files[@]}" -eq 1
+          mkdir -p dist
+          apk="dist/YAiPlayer-Shells-$TARGET_PLATFORM.apk"
+          cp "${files[0]}" "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" > badging.txt
+          grep -F "package: name='com.yai.iptv.player.$TARGET_PLATFORM.shells'" badging.txt
+          python3 yai-player-shells/integration/verify_apk.py "$apk" "$TARGET_PLATFORM"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shells-${{ matrix.platform }}
+          path: dist/*.apk
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: yai-player-shells
+      - uses: actions/checkout@v4
+        with:
+          repository: eai-apps/YAiPlayer
+          ref: 12e6f959002244ec7b38b896a3a191e425ec6b58
+          path: YAiPlayer
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shells-*
+          merge-multiple: true
+          path: dist
+      - name: Package corresponding source
+        run: |
+          git -C YAiPlayer apply ../yai-player-shells/integration/YAiPlayer-Shells.patch
+          git -C YAiPlayer add -A
+          mkdir -p source/YAiPlayer source/yai-player-shells
+          git -C YAiPlayer archive "$(git -C YAiPlayer write-tree)" | tar -x -C source/YAiPlayer
+          git -C yai-player-shells archive HEAD | tar -x -C source/yai-player-shells
+          cp yai-player-shells/integration/README.md source/README.md
+          cp yai-player-shells/integration/COPYING source/COPYING
+          tar -C source -czf dist/YAiPlayer-Shells-corresponding-source.tar.gz .
+          (cd dist && sha256sum *.apk *.tar.gz > SHA256SUMS.txt)
+      - name: Publish the separate preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'EOF'
+          Отдельная тестовая сборка YAiPlayer Shells. На телефоне доступны Classic и Vizo, на приставке Classic, Vizo и Mate. Выбор находится в «Настройки → Тема оформления».
+          Пакеты APK подписаны для тестирования и имеют суффикс Android-пакета .shells. Соответствующий исходный код сборок предоставляется по GPLv3.
+          EOF
+          gh release create "shells-preview-$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title "YAiPlayer Shells $GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT" --notes-file notes.md

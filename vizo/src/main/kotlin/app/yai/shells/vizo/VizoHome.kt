@@ -68,8 +68,8 @@ enum class VizoAction { CONTINUE, ACCOUNT, REMOTE, SEARCH, GUIDE, PLAYLISTS, GUI
 data class VizoCategory(val id: String, val title: String, val count: Int? = null)
 
 @Composable
-fun VizoEntry(palette: VizoPalette, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    VizoButton(stringResource(R.string.vizo_short), palette, onClick, modifier, accent = true)
+fun ShellSettingsButton(palette: VizoPalette, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    VizoButton(stringResource(R.string.vizo_settings), palette, onClick, modifier)
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -80,7 +80,7 @@ fun VizoHome(
     categories: List<VizoCategory>,
     hasSources: Boolean,
     canContinue: Boolean,
-    onMain: () -> Unit,
+    onAppearance: () -> Unit,
     onCategory: (String) -> Unit,
     onAction: (VizoAction) -> Unit,
     onAddSource: (VizoSource) -> Unit,
@@ -105,6 +105,7 @@ fun VizoHome(
             MenuItem(R.string.vizo_stalker) { onAddSource(VizoSource.STALKER) },
         )
         VizoPage.SETTINGS -> listOf(
+            MenuItem(R.string.shell_appearance, onAppearance),
             MenuItem(R.string.vizo_account) { onAction(VizoAction.ACCOUNT) },
             MenuItem(R.string.vizo_playlists) { onAction(VizoAction.PLAYLISTS) },
             MenuItem(R.string.vizo_add) { page = VizoPage.SOURCES },
@@ -119,7 +120,6 @@ fun VizoHome(
         if (!television) add(MenuItem(R.string.vizo_remote) { onAction(VizoAction.REMOTE) })
         add(MenuItem(R.string.vizo_search) { onAction(VizoAction.SEARCH) })
         add(MenuItem(R.string.vizo_guide) { onAction(VizoAction.GUIDE) })
-        add(MenuItem(R.string.vizo_settings) { page = VizoPage.SETTINGS })
     }
 
     Column(
@@ -141,7 +141,7 @@ fun VizoHome(
             VizoText(stringResource(title), palette.text, Modifier.weight(1f), size = 20, strong = true)
             val target = if (television) Modifier.focusRequester(focus) else Modifier
             if (page == VizoPage.HOME) {
-                VizoButton(stringResource(R.string.vizo_main), palette, onMain, target)
+                VizoButton(stringResource(R.string.vizo_settings), palette, { page = VizoPage.SETTINGS }, target)
             } else {
                 VizoButton(stringResource(R.string.vizo_back), palette, { page = VizoPage.HOME }, target)
             }
@@ -209,7 +209,7 @@ private enum class VizoPage { HOME, SOURCES, SETTINGS }
 private data class MenuItem(val title: Int, val onClick: () -> Unit)
 
 @Composable
-internal fun VizoButton(
+fun VizoButton(
     label: String,
     palette: VizoPalette,
     onClick: () -> Unit,
@@ -245,7 +245,7 @@ internal fun VizoButton(
 }
 
 @Composable
-internal fun VizoText(text: String, color: Color, modifier: Modifier = Modifier, size: Int = 15, strong: Boolean = false) {
+fun VizoText(text: String, color: Color, modifier: Modifier = Modifier, size: Int = 15, strong: Boolean = false) {
     BasicText(
         text = text,
         modifier = modifier,

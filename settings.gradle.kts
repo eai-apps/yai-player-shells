@@ -18,4 +18,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "yai-player-shells"
-include(":vizo")
+include(":vizo", ":mate")

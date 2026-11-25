@@ -27,4 +27,7 @@
     <string name="vizo_on_now">On now</string>
     <string name="vizo_time_range" translatable="false">%1$s – %2$s</string>
     <string name="vizo_dated_time" translatable="false">%1$s · %2$s</string>
+    <string name="shell_appearance">Appearance</string>
+    <string name="shell_classic" translatable="false">YAiPlayer Classic</string>
+    <string name="shell_mate" translatable="false">YAiPlayer Mate</string>
 </resources>

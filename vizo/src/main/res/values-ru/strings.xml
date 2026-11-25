@@ -24,4 +24,5 @@
     <string name="vizo_fullscreen">На весь экран</string>
     <string name="vizo_no_guide">Нет данных телепрограммы</string>
     <string name="vizo_on_now">Сейчас</string>
+    <string name="shell_appearance">Тема оформления</string>
 </resources>
