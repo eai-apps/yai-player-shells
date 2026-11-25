@@ -1,5 +1,5 @@
 diff --git a/clients/android-mobile/app/build.gradle.kts b/clients/android-mobile/app/build.gradle.kts
-index 4c075a2c0e21f19e0acea694a5edd446634fb155..daea06b78442e82b89a56bbee898fdaf483d765e 100644
+index 4c075a2c0e21f19e0acea694a5edd446634fb155..6372220d6d2a0154861d4a8fd5d063ce29ff2ebf 100644
 --- a/clients/android-mobile/app/build.gradle.kts
 +++ b/clients/android-mobile/app/build.gradle.kts
 @@ -56,9 +56,9 @@ android {
@@ -7,7 +7,7 @@ index 4c075a2c0e21f19e0acea694a5edd446634fb155..daea06b78442e82b89a56bbee898fdaf
  
      defaultConfig {
 -        buildConfigField("boolean", "SELF_UPDATE", (!playStore).toString())
-+        buildConfigField("boolean", "SELF_UPDATE", "false")
++        buildConfigField("boolean", "SELF_UPDATE", (!playStore && providers.gradleProperty("shells.updates").orNull == "true").toString())
          buildConfigField("boolean", "BETA", beta.toString())
 -        manifestPlaceholders["appLabel"] = if (beta) "YAiPlayer Beta" else "@string/app_name"
 +        manifestPlaceholders["appLabel"] = "YAiPlayer Shells"
@@ -31,6 +31,18 @@ index 4c075a2c0e21f19e0acea694a5edd446634fb155..daea06b78442e82b89a56bbee898fdaf
      // The shared engine, from its own repository — https://github.com/ahXN00/OwnTV_Core. Set
      // owntv.corePath in ~/.gradle/gradle.properties to build against its source instead of the pin.
      implementation(libs.owntv.core)
+diff --git a/clients/android-mobile/app/proguard-rules.pro b/clients/android-mobile/app/proguard-rules.pro
+index 620b7775a17bc811e2b1ed7d6f038f5c099487cd..5e2c4bacd0dcc5e1eb736c786c411be178e8aeef 100644
+--- a/clients/android-mobile/app/proguard-rules.pro
++++ b/clients/android-mobile/app/proguard-rules.pro
+@@ -32,3 +32,7 @@
+ #     ("register has type ... but expected java.lang.String") and the TV app crashed on start.
+ #     Shrinking and obfuscation stay on; only the bytecode optimizer is off. ---
+ -dontoptimize
++
++# Keep shell entry points identifiable during APK verification.
++-keep class app.yai.shells.vizo.ShellModes
++-keep class tv.own.owntv.mobile.ui.nav.MobileVizoHomeKt
 diff --git a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/MainActivity.kt b/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/MainActivity.kt
 index 71a1f33576c304ac4ad3b5addd22833ae23bfb31..c20ccfd8d7e698683b437e631b4f9b8e3b6fa32f 100644
 --- a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/MainActivity.kt
@@ -49,6 +61,22 @@ index 71a1f33576c304ac4ad3b5addd22833ae23bfb31..c20ccfd8d7e698683b437e631b4f9b8e
                          }
                          // The launch animation, over the app while it loads (once per cold start).
                          tv.own.owntv.mobile.ui.BrandIntro(enabled = true)
+diff --git a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt b/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt
+index 132784f9847748c9a85cceceea26fbd2874cd987..af3ca224e4f90905099a191f6a704f7566c11f5e 100644
+--- a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt
++++ b/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/OwnTVMobileApp.kt
+@@ -100,9 +100,8 @@ class OwnTVMobileApp : Application(), androidx.work.Configuration.Provider {
+         // This app's own releases, not the television's. Left at its default, an update check here
+         // would offer OwnTV-v*.apk — a different applicationId, which the installer refuses after
+         // the whole download.
+-        CoreBuildInfo.releaseRepo = "eai-apps/YAiPlayer"
+-        CoreBuildInfo.releaseAssetMarker = "YAiPlayer-Mobile"
+-        if (BuildConfig.BETA) CoreBuildInfo.releaseTag = "beta"
++        CoreBuildInfo.releaseRepo = "eai-apps/yai-player-shells"
++        CoreBuildInfo.releaseAssetMarker = "YAiPlayer-Shells-mobile"
+         CoreBuildInfo.livePreviewDefault = false
+         // A phone runs on battery: automatic refreshes pause off screen and the background check waits for a charger.
+         CoreBuildInfo.batteryPowered = true
 diff --git a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileNavHost.kt b/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileNavHost.kt
 index d36596fa0589388ef12b80c7f6c3621c4f88b376..75a10551c924062929d042ce55caba3e7484b9a5 100644
 --- a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/nav/MobileNavHost.kt
@@ -249,7 +277,7 @@ index 1868fda2626dcfc27acc49f0c662dbb593857919..20633e26d28384712d456ac5b6fe092e
                      onStartXtream = { name, server, user, pass, ua, referer, refresh, live, movies, series, hls, epgUrl ->
                          importName = name.ifBlank { defaultIptvName }
 diff --git a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/shell/MobileShell.kt b/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/shell/MobileShell.kt
-index c6a178ce56f149421c923c9c81756708823d8b4f..b929568bbd0a57511140feaa953ae8889deee735 100644
+index c6a178ce56f149421c923c9c81756708823d8b4f..d931b4f2b2a3e748e5f1b88f9568c6dfb8c0523e 100644
 --- a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/shell/MobileShell.kt
 +++ b/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/shell/MobileShell.kt
 @@ -40,6 +40,11 @@ import androidx.compose.foundation.layout.widthIn
@@ -276,7 +304,24 @@ index c6a178ce56f149421c923c9c81756708823d8b4f..b929568bbd0a57511140feaa953ae888
      // A phone held sideways (409 dp tall) gets the compact rail and the one-line header.
      val compactRail = LocalConfiguration.current.screenHeightDp < 600
      val destinations =
-@@ -593,7 +599,16 @@ fun MobileShell(
+@@ -417,7 +423,7 @@ fun MobileShell(
+     // Radio (RadioFeature.AVAILABLE is false only in a Play-store build, -Powntv.playStore=true).
+     var radioOpen by remember { mutableStateOf(false) }
+     LaunchedEffect(updateCheckOnStart) {
+-        if (updateCheckOnStart && !updateChecked) {
++        if (tv.own.owntv.mobile.BuildConfig.SELF_UPDATE && updateCheckOnStart && !updateChecked) {
+             updateChecked = true
+             delay(5_000)
+             updateManager.check()
+@@ -434,7 +440,6 @@ fun MobileShell(
+         }
+     }
+     tv.own.owntv.mobile.ui.screens.settings.SubscriptionExpiryHost(enabled = !fullscreen && !updateSheetOpen)
+-    if (tv.own.owntv.mobile.BuildConfig.SELF_UPDATE) tv.own.owntv.mobile.ui.screens.settings.VersionGateHost()
+     tv.own.owntv.mobile.ui.screens.settings.GuideOfferHost(onShowNewChannels = { navController.navigateToTab(MobileDestination.LIVE) })
+ 
+     val lightScope = androidx.compose.runtime.rememberCoroutineScope()
+@@ -593,7 +598,16 @@ fun MobileShell(
              fullscreen = fullscreen,
              startInset = railRoom,
              header = {
@@ -294,7 +339,7 @@ index c6a178ce56f149421c923c9c81756708823d8b4f..b929568bbd0a57511140feaa953ae888
                      title = titleRes?.let { stringResource(it) },
                      backLabel = backLabel,
                      onBack = { navController.popBackStack() },
-@@ -653,7 +668,7 @@ fun MobileShell(
+@@ -653,7 +667,7 @@ fun MobileShell(
                  Column(
                      Modifier
                          .fillMaxWidth()
@@ -303,7 +348,7 @@ index c6a178ce56f149421c923c9c81756708823d8b4f..b929568bbd0a57511140feaa953ae888
                      verticalArrangement = Arrangement.spacedBy(8.dp),
                  ) {
                      if (dockedMini) {
-@@ -674,7 +689,7 @@ fun MobileShell(
+@@ -674,7 +688,7 @@ fun MobileShell(
                              programmeStopMs = if (live != null) nowNext?.now?.stopMs else null,
                          )
                      }
@@ -340,7 +385,7 @@ index 29fafc04da29fb61817a740a0c4b3866f56da40a..414741a62f2e1d024145d0d25a327e4e
  // Records the baseline profile against :app. Never built by CI — recording needs a real device.
  include(":baselineprofile")
 diff --git a/clients/android-tv/app/build.gradle.kts b/clients/android-tv/app/build.gradle.kts
-index 83efd74d3f258da26b83462b81e3a0ea3ac39b45..c90837930b0469b153cfb149aae2f480d04a024d 100644
+index 83efd74d3f258da26b83462b81e3a0ea3ac39b45..f64e350338a271f4f601c01ebdcd62fec7bf8b43 100644
 --- a/clients/android-tv/app/build.gradle.kts
 +++ b/clients/android-tv/app/build.gradle.kts
 @@ -53,9 +53,9 @@ android {
@@ -348,7 +393,7 @@ index 83efd74d3f258da26b83462b81e3a0ea3ac39b45..c90837930b0469b153cfb149aae2f480
  
      defaultConfig {
 -        buildConfigField("boolean", "SELF_UPDATE", (!playStore).toString())
-+        buildConfigField("boolean", "SELF_UPDATE", "false")
++        buildConfigField("boolean", "SELF_UPDATE", (!playStore && providers.gradleProperty("shells.updates").orNull == "true").toString())
          buildConfigField("boolean", "BETA", beta.toString())
 -        manifestPlaceholders["appLabel"] = if (beta) "YAiPlayer Beta" else "@string/app_name"
 +        manifestPlaceholders["appLabel"] = "YAiPlayer Shells"
@@ -373,6 +418,19 @@ index 83efd74d3f258da26b83462b81e3a0ea3ac39b45..c90837930b0469b153cfb149aae2f480
      // The shared data/settings/sync module. It lives in its own repository now — see
      // https://github.com/ahXN00/OwnTV_Core. Set owntv.corePath in ~/.gradle/gradle.properties to
      // build against its source instead of this pinned version.
+diff --git a/clients/android-tv/app/proguard-rules.pro b/clients/android-tv/app/proguard-rules.pro
+index 982556f1b71e96864a7724eef849d91694e1baa1..86b67010977f8c7040852584de54004d5b90318e 100644
+--- a/clients/android-tv/app/proguard-rules.pro
++++ b/clients/android-tv/app/proguard-rules.pro
+@@ -28,3 +28,8 @@
+ #     ("register has type ... but expected java.lang.String") and the TV app crashed on start.
+ #     Shrinking and obfuscation stay on; only the bytecode optimizer is off. ---
+ -dontoptimize
++
++# Keep shell entry points identifiable during APK verification.
++-keep class app.yai.shells.vizo.ShellModes
++-keep class app.yai.shells.mate.MateHomeKt
++-keep class tv.own.owntv.features.shell.TvVizoHomeKt
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/MainActivity.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/MainActivity.kt
 index 6085d15103cc7b9e86674b4410b29608ceae4e74..761fadbb7b60d07988cbc89af235b0c0a10cf237 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/MainActivity.kt
@@ -397,6 +455,22 @@ index 6085d15103cc7b9e86674b4410b29608ceae4e74..761fadbb7b60d07988cbc89af235b0c0
                      } // end LocalizedContent
                  }
              }
+diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/OwnTVApp.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/OwnTVApp.kt
+index 64b628c1df2b4d0e2420760b81fb2c9ca61475c0..54d57278736db8c1ef62814802858858402d9629 100644
+--- a/clients/android-tv/app/src/main/java/tv/own/owntv/OwnTVApp.kt
++++ b/clients/android-tv/app/src/main/java/tv/own/owntv/OwnTVApp.kt
+@@ -114,9 +114,8 @@ class OwnTVApp : Application(), SingletonImageLoader.Factory, androidx.work.Conf
+         // this value, so the line changes nothing today — it is here so the television names its own
+         // repository instead of relying on core to guess it, the same as the phone app does. A
+         // default that happens to be right for one app is a trap for every other one.
+-        tv.own.owntv.core.CoreBuildInfo.releaseRepo = "eai-apps/YAiPlayer"
+-        tv.own.owntv.core.CoreBuildInfo.releaseAssetMarker = "YAiPlayer-TV"
+-        if (BuildConfig.BETA) tv.own.owntv.core.CoreBuildInfo.releaseTag = "beta"
++        tv.own.owntv.core.CoreBuildInfo.releaseRepo = "eai-apps/yai-player-shells"
++        tv.own.owntv.core.CoreBuildInfo.releaseAssetMarker = "YAiPlayer-Shells-tv"
+         // Fixed for this process before any player exists: the setting applies only after a restart.
+         tv.own.owntv.core.player.FfmpegAudioSetting.load(this)
+         // First thing after the context exists: a crash from here on leaves a trace on disk that the
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/features/profiles/ProfileGate.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/features/profiles/ProfileGate.kt
 index be016e024396ec15d1328c6e957848a83a96796f..00f0443fb2189bff07f70dc1d488507982920887 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/features/profiles/ProfileGate.kt
@@ -488,7 +562,7 @@ index 1c7cb68525e35ec0a39cc6fc331e211e781b482c..8177d78775b87492a4b18a41c6798774
                  SourceType.STALKER -> SourceKind.STALKER
                  else -> SourceKind.XTREAM
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
-index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266e2b9d603 100644
+index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6a20e0a2702abfeab309fc925690de6d520734 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
 +++ b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
 @@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
@@ -978,6 +1052,23 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266
        }
  
      if (showExit) {
+@@ -2290,7 +2462,7 @@ fun OwnTVShell(
+         val updateCheckOnStart by settingsRepo.updateCheckOnStart.collectAsStateWithLifecycle(initialValue = false)
+         LaunchedEffect(updateCheckOnStart) {
+             // Once per launch: a rebuilt shell must not bring the "latest version" card back.
+-            if (updateCheckOnStart && !showStartupToast && !shellVm.startupUpdateCheckDone) {
++            if (tv.own.owntv.BuildConfig.SELF_UPDATE && updateCheckOnStart && !showStartupToast && !shellVm.startupUpdateCheckDone) {
+                 kotlinx.coroutines.delay(5_000)
+                 shellVm.startupUpdateCheckDone = true
+                 showStartupToast = true
+@@ -2298,7 +2470,6 @@ fun OwnTVShell(
+             }
+         }
+         tv.own.owntv.features.update.SubscriptionExpiryHost(enabled = selectedSection != MainSection.SETTINGS && playerMode == PlayerMode.NONE)
+-        if (tv.own.owntv.BuildConfig.SELF_UPDATE) tv.own.owntv.features.update.VersionGateHost()
+         tv.own.owntv.features.update.GuideOfferHost(onShowNewChannels = { id ->
+             // «Посмотреть» on «Новые каналы» (owner 16.11): Live TV on that category.
+             liveVm.select(tv.own.owntv.core.live.LiveKey.Custom(id))
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/components/SettingsScreen.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/components/SettingsScreen.kt
 index f62fc9eefe8cdb3f3995fdfa3a273b5914727e92..5f64719d751935087a61acc3ceebc4fd844195c7 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/components/SettingsScreen.kt

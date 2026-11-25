@@ -39,3 +39,8 @@
 - [Preview 3.1](https://github.com/eai-apps/yai-player-shells/releases/tag/shells-preview-3.1), исходная ревизия 14b2cc9. Оба APK проверены после скачивания по подписи, SHA-256, ID пакетов, ARM ABI и классам оболочек. APK и исходный архив лежат в local-build/shells-preview-3.1.
 - [GPL-ветка Mate](https://github.com/eai-apps/yai-player-shells/tree/mate/yaiplayer-gpl) и [её TV-артефакт](https://github.com/eai-apps/yai-player-shells/actions/runs/45623303670/artifacts/15026832105). Локальная копия в local-build/mate-gpl-45623303670. APK имеет тот же тестовый Android ID, что и TV Preview. При разных сертификатах такие APK требуют переустановки с потерей локальных данных тестовой копии.
 - Проверка на ТВ и телефоне осталась открытой. Смена оболочки в браузерном плеере в эти APK не входит.
+
+### Канал обновлений Shells
+- Первичная установка через постоянные ссылки GitHub Releases latest/download для YAiPlayer-Shells-mobile.apk и YAiPlayer-Shells-tv.apk. Штатный UpdateManager забирает только APK своего устройства из eai-apps/yai-player-shells. Проверка при открытии приложения включена по умолчанию. Установку подтверждает пользователь через Android.
+- Публикуемые с этого изменения версии подписаны постоянным отдельным ключом Shells. GitHub Actions проверяет отпечаток из integration/signing-cert.sha256 и возрастающие номера версий. Старые подписанные отладочными ключами shells-preview требуют однократной переустановки тестовой копии.
+- GitHub Actions использует секрет SHELLS_SIGNING_BUNDLE. Зашифрованная резервная копия создана в локальном профиле Windows. Доступ к ней привязан к той же учётной записи Windows. Приватные данные в репозиторий не входят.
