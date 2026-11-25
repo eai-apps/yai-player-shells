@@ -510,6 +510,23 @@ index 208759d74c9df9799d0e9eeb34250ac98bfcd5a5..4ba1c22083fb96ab6237631b306fe05b
      // Which tab holds which kind is core's rule: an episode download is EPISODE, which files under Series.
      val movies = remember(downloads) { downloads.filter { MediaFolders.folderFor(it.mediaType) == MediaFolders.MOVIES } }
      val series = remember(downloads) { downloads.filter { MediaFolders.folderFor(it.mediaType) == MediaFolders.SERIES } }
+diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/features/epg/EpgScreen.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/features/epg/EpgScreen.kt
+index 27b1b88f551e041f6ff188eb958c378a9f7d08f6..0636c9f8284901298fb9b985dee29e4f37089820 100644
+--- a/clients/android-tv/app/src/main/java/tv/own/owntv/features/epg/EpgScreen.kt
++++ b/clients/android-tv/app/src/main/java/tv/own/owntv/features/epg/EpgScreen.kt
+@@ -447,8 +447,10 @@ fun EpgScreen(
+ 
+     DisposableEffect(onEntryHook) {
+         onEntryHook?.invoke {
+-            state.channels.isNotEmpty() &&
+-                runCatching { rowFocus(focusedRow.coerceIn(0, state.channels.size - 1)).requestFocus() }.getOrDefault(false)
++            if (state.channels.isEmpty()) false else {
++                focusGrid()
++                true
++            }
+         }
+         onDispose { onEntryHook?.invoke(null) }
+     }
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/features/profiles/ProfileGate.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/features/profiles/ProfileGate.kt
 index be016e024396ec15d1328c6e957848a83a96796f..00f0443fb2189bff07f70dc1d488507982920887 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/features/profiles/ProfileGate.kt
@@ -601,7 +618,7 @@ index 1c7cb68525e35ec0a39cc6fc331e211e781b482c..8177d78775b87492a4b18a41c6798774
                  SourceType.STALKER -> SourceKind.STALKER
                  else -> SourceKind.XTREAM
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
-index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6debc11d05 100644
+index 23c57c213a17db35a98cfe5fa4491792ec999fd1..a9df50fd111c2185aadd59173b9432a97cc5a0de 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
 +++ b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
 @@ -1,6 +1,7 @@
@@ -702,24 +719,27 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                          liveVm.revealChannel(ch)
                      } else {
                          val key = liveVm.railKeyOf(ch)
-@@ -648,13 +680,13 @@ fun OwnTVShell(
+@@ -648,14 +680,15 @@ fun OwnTVShell(
          subtitleController.clear() // leaving the player drops the OpenSubtitles item context
          if (selectedSection != MainSection.LIVE_TV) liveVm.clearLiveOnExo()
          // Closing back into a guide: it focuses the channel that was playing (zapped-to included).
 -        epgVm.playerClosed = selectedSection == MainSection.EPG ||
 -            (selectedSection == MainSection.LIVE_TV && liveVm.liveView.value == tv.own.owntv.core.settings.SettingsRepository.LiveView.GUIDE)
-+        epgVm.playerClosed = (mateAtHome && zapSource == MainSection.LIVE_TV) || selectedSection == MainSection.EPG ||
++        val returningToMateGuide = mateAtHome && zapSource == MainSection.LIVE_TV
++        epgVm.playerClosed = returningToMateGuide || selectedSection == MainSection.EPG ||
 +            (selectedSection == MainSection.LIVE_TV && shellLiveView == LiveView.GUIDE)
          restoreFocus = true
          // Over Live TV's list the screen itself puts the cursor back on the channel; sending it to the rail
          // first only made that restore fight the rail (owner 15.11: menu felt frozen after beta-22).
          val listRestores = selectedSection == MainSection.LIVE_TV &&
 -            liveVm.liveView.value != tv.own.owntv.core.settings.SettingsRepository.LiveView.GUIDE
+-        if (!listRestores) focusRail()
 +            shellLiveView != LiveView.GUIDE
-         if (!listRestores) focusRail()
++        if (!listRestores && !returningToMateGuide) focusRail()
          tv.own.owntv.core.CorePerf.log { "perf_tv_exit_end at=${android.os.SystemClock.elapsedRealtime()}" }
          Unit
-@@ -899,7 +931,7 @@ fun OwnTVShell(
+     }
+@@ -899,7 +932,7 @@ fun OwnTVShell(
          onSelectSection(section)
          // A shortcut may be fired by a control inside the destination being replaced (most notably
          // Settings). Once that screen leaves composition its focused node disappears, so hand focus
@@ -728,7 +748,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
          scope.launch {
              withFrameNanos { }
              focusRail()
-@@ -1021,6 +1053,10 @@ fun OwnTVShell(
+@@ -1021,6 +1054,10 @@ fun OwnTVShell(
          searchReturn = null
          onSelectSection(MainSection.SEARCH)
      }
@@ -739,7 +759,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
      LaunchedEffect(selectedSection) {
          if (selectedSection != MainSection.SEARCH && selectedSection != searchReturn) searchReturn = null
      }
-@@ -1045,10 +1081,17 @@ fun OwnTVShell(
+@@ -1045,10 +1082,17 @@ fun OwnTVShell(
              // the first press: the fallback below simply moved focus to the rail and nothing else
              // happened. Handled here as well so the answer is the same whichever handler fires; a
              // sub-screen of Settings still wins, because its handler is composed deeper than this.
@@ -759,7 +779,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
              else -> focusRail()
          }
      }
-@@ -1271,7 +1314,6 @@ fun OwnTVShell(
+@@ -1271,7 +1315,6 @@ fun OwnTVShell(
              ) {
                  // Live TV's view (List / Guide), and how a guide — the TV Guide or Live TV's Guide view —
                  // starts a channel or an archive programme: through LiveViewModel, the one live path.
@@ -767,7 +787,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                  val guidePlayChannel: (ChannelEntity, List<ChannelEntity>) -> Unit = { ch, _ ->
                      restoreFocus = false
                      scope.launch { resumeSettings.setLastWatchOrigin("live") }
-@@ -1296,7 +1338,7 @@ fun OwnTVShell(
+@@ -1296,7 +1339,7 @@ fun OwnTVShell(
                              // edge (or beside a docked rail).
                              Modifier
                                  .padding(
@@ -776,7 +796,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                                          tv.own.owntv.features.shell.components.railDockedReserve(navSize)
                                      } else 0.dp,
                                  )
-@@ -1305,7 +1347,7 @@ fun OwnTVShell(
+@@ -1305,7 +1348,7 @@ fun OwnTVShell(
                                  // overlapped the content's left edge, which left Back as the only way out.
                                  .onKeyEvent { e ->
                                      val back = if (contentLtr) Key.DirectionLeft else Key.DirectionRight
@@ -785,7 +805,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                                      if (!contentFocusManager.moveFocus(if (contentLtr) androidx.compose.ui.focus.FocusDirection.Left else androidx.compose.ui.focus.FocusDirection.Right)) {
                                          focusRail()
                                      }
-@@ -1344,7 +1386,7 @@ fun OwnTVShell(
+@@ -1344,7 +1387,7 @@ fun OwnTVShell(
                                  .focusGroup(),
                          )
  
@@ -794,7 +814,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                              themeMode = themeMode,
                              uiZoomPercent = uiZoomPercent,
                              onSetZoom = onSetZoom,
-@@ -1353,11 +1395,15 @@ fun OwnTVShell(
+@@ -1353,11 +1396,15 @@ fun OwnTVShell(
                              onOpenPlaylist = {},
                              // Settings is reached through More now, so Back out of its root goes
                              // back there rather than to the rail — one level out, not two.
@@ -812,7 +832,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                              start = settingsStart,
                              onStartConsumed = { settingsStart = null },
                              onOpenSportsTeam = { t ->
-@@ -1370,66 +1416,176 @@ fun OwnTVShell(
+@@ -1370,66 +1417,178 @@ fun OwnTVShell(
                                  .focusGroup(),
                          ) }
  
@@ -971,6 +991,8 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
 +                                onPlayChannel = guidePlayChannel,
 +                                onPlayCatchup = guidePlayCatchup,
 +                                previewEnabled = playerMode == PlayerMode.NONE,
++                                restoreFocus = restoreFocus && playerMode == PlayerMode.NONE,
++                                onRestored = { restoreFocus = false },
 +                                onEntryHook = registerMateGuideEntry,
 +                                onAddEpg = { openEpgAdd = true; onSelectSection(MainSection.SETTINGS) },
 +                                modifier = Modifier.fillMaxSize(),
@@ -1043,7 +1065,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
  
                          selectedSection == MainSection.SEARCH -> SearchScreen(
                              vm = searchVm,
-@@ -1445,8 +1601,8 @@ fun OwnTVShell(
+@@ -1445,8 +1604,8 @@ fun OwnTVShell(
                              },
                              onGoToChannel = { ch ->
                                  restoreFocus = false
@@ -1054,7 +1076,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                                  }
                                  liveVm.revealChannel(ch)
                                  searchReturn = MainSection.LIVE_TV
-@@ -1469,14 +1625,14 @@ fun OwnTVShell(
+@@ -1469,14 +1628,14 @@ fun OwnTVShell(
                              modifier = Modifier.fillMaxSize(),
                          )
  
@@ -1071,7 +1093,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                              restoreFocus = restoreFocus,
                              onRestored = { restoreFocus = false },
                              modifier = Modifier
-@@ -1487,7 +1643,7 @@ fun OwnTVShell(
+@@ -1487,7 +1646,7 @@ fun OwnTVShell(
  
                          selectedSection == MainSection.LIVE_TV -> LiveScreen(
                              onFullscreen = { openFullscreen() },
@@ -1080,7 +1102,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                              onChildFocused = { focusedLayer = ShellLayer.CONTENT },
                              previewEnabled = playerMode == PlayerMode.NONE,
                              restoreFocus = restoreFocus,
-@@ -1514,13 +1670,14 @@ fun OwnTVShell(
+@@ -1514,13 +1673,14 @@ fun OwnTVShell(
                          )
  
                          selectedSection == MainSection.DOWNLOADS -> DownloadsScreen(
@@ -1096,7 +1118,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                              modifier = Modifier.fillMaxSize(),
                          )
  
-@@ -1534,7 +1691,7 @@ fun OwnTVShell(
+@@ -1534,7 +1694,7 @@ fun OwnTVShell(
                              onOpenLive = { onSelectSection(MainSection.LIVE_TV) },
                              onChildFocused = { focusedLayer = ShellLayer.CONTENT },
                              onEntryHook = { favoritesEntry = it },
@@ -1105,7 +1127,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                              modifier = Modifier.fillMaxSize(),
                          )
  
-@@ -1544,7 +1701,7 @@ fun OwnTVShell(
+@@ -1544,7 +1704,7 @@ fun OwnTVShell(
                              onChildFocused = { focusedLayer = ShellLayer.CONTENT },
                              onEntryHook = { sportsEntry = it },
                              active = playerMode == PlayerMode.NONE,
@@ -1114,7 +1136,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                              modifier = Modifier.fillMaxSize(),
                          )
  
-@@ -1567,7 +1724,7 @@ fun OwnTVShell(
+@@ -1567,7 +1727,7 @@ fun OwnTVShell(
                  }
              }
            }
@@ -1123,7 +1145,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                  continuePill = continueTarget?.let { target ->
                      val live = target.kind == tv.own.owntv.features.home.ContinueKind.LIVE
                      tv.own.owntv.features.shell.components.ContinuePill(
-@@ -1599,7 +1756,7 @@ fun OwnTVShell(
+@@ -1599,7 +1759,7 @@ fun OwnTVShell(
                  subscriptionBadge = subscriptionBadge.takeIf { selectedSection == MainSection.HOME },
                  modifier = Modifier.align(Alignment.TopEnd).onFocusChanged { clusterFocused = it.hasFocus }.focusGroup(),
              )
@@ -1132,7 +1154,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                  state = railState,
                  size = railSize,
                  length = navLength,
-@@ -1617,7 +1774,7 @@ fun OwnTVShell(
+@@ -1617,7 +1777,7 @@ fun OwnTVShell(
                  selectedItemFocusRequester = sidebarFocus,
                  contentFocusRequester = contentAreaFocus,
                  enterContent = when (selectedSection) {
@@ -1141,7 +1163,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                      MainSection.EPG, MainSection.LIVE_TV -> guideEntry
                      MainSection.MOVIES, MainSection.SERIES -> vodEntry
                      MainSection.DOWNLOADS -> downloadsEntry
-@@ -1739,9 +1896,26 @@ fun OwnTVShell(
+@@ -1739,9 +1899,26 @@ fun OwnTVShell(
        val exoParked = playerMode == PlayerMode.NONE && liveOnExo && multiview == null
        if (multiview == null && (playerMode == PlayerMode.FULLSCREEN || playerMode == PlayerMode.MINI || exoParked)) {
          val isFull = playerMode == PlayerMode.FULLSCREEN
@@ -1169,7 +1191,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
              } else {
                  // Dynamic docked size/position: a screen-width fraction at the chosen corner/edge, so it
                  // scales with the panel + UI zoom (never a fixed-size box).
-@@ -1887,7 +2061,14 @@ fun OwnTVShell(
+@@ -1887,7 +2064,14 @@ fun OwnTVShell(
                      onAudioMode = toAudioMode,
                      // The channel-list overlay draws ABOVE the HUD; while it's open the HUD goes inert so
                      // its hide/error focus grabs can't yank D-pad focus off the overlay.
@@ -1185,7 +1207,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                      onChannelUp = zap?.let { z -> { z(-1) } },
                      onChannelDown = zap?.let { z -> { z(1) } },
                      onOpenChannelList = if (isTunedLive && liveCanZap) { { showChannelList = true } } else null,
-@@ -2166,6 +2347,23 @@ fun OwnTVShell(
+@@ -2166,6 +2350,23 @@ fun OwnTVShell(
              }
            }
          }
@@ -1209,7 +1231,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
        }
  
      if (showExit) {
-@@ -2245,10 +2443,9 @@ fun OwnTVShell(
+@@ -2245,10 +2446,9 @@ fun OwnTVShell(
      // because this layer is on screen everywhere, the player included. Not on the Guide itself:
      // there the line beside the button, or the review window, already says it.
      val epgMatchToast = tv.own.owntv.ui.components.rememberInAppToast()
@@ -1221,7 +1243,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
      val currentGuideOnScreen by rememberUpdatedState(guideOnScreen)
      var finishedMatch by remember { mutableStateOf<tv.own.owntv.features.epg.EpgMatchSummary?>(null) }
      LaunchedEffect(epgVm) {
-@@ -2290,7 +2487,7 @@ fun OwnTVShell(
+@@ -2290,7 +2490,7 @@ fun OwnTVShell(
          val updateCheckOnStart by settingsRepo.updateCheckOnStart.collectAsStateWithLifecycle(initialValue = false)
          LaunchedEffect(updateCheckOnStart) {
              // Once per launch: a rebuilt shell must not bring the "latest version" card back.
@@ -1230,7 +1252,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..8c5f28db2178e65535a66697b3ff0d6d
                  kotlinx.coroutines.delay(5_000)
                  shellVm.startupUpdateCheckDone = true
                  showStartupToast = true
-@@ -2298,7 +2495,6 @@ fun OwnTVShell(
+@@ -2298,7 +2498,6 @@ fun OwnTVShell(
              }
          }
          tv.own.owntv.features.update.SubscriptionExpiryHost(enabled = selectedSection != MainSection.SETTINGS && playerMode == PlayerMode.NONE)
