@@ -248,6 +248,70 @@ index 1868fda2626dcfc27acc49f0c662dbb593857919..20633e26d28384712d456ac5b6fe092e
                      onSubmitted = { lastFormValues = it },
                      onStartXtream = { name, server, user, pass, ua, referer, refresh, live, movies, series, hls, epgUrl ->
                          importName = name.ifBlank { defaultIptvName }
+diff --git a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/shell/MobileShell.kt b/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/shell/MobileShell.kt
+index c6a178ce56f149421c923c9c81756708823d8b4f..b929568bbd0a57511140feaa953ae8889deee735 100644
+--- a/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/shell/MobileShell.kt
++++ b/clients/android-mobile/app/src/main/java/tv/own/owntv/mobile/ui/shell/MobileShell.kt
+@@ -40,6 +40,11 @@ import androidx.compose.foundation.layout.widthIn
+ import tv.own.owntv.mobile.ui.components.MobileIcons
+ import tv.own.owntv.mobile.ui.stage.StagePill
+ import androidx.compose.foundation.layout.Column
++import app.yai.shells.vizo.LocalShellModes
++import app.yai.shells.vizo.ShellMode
++import app.yai.shells.vizo.VizoButton
++import app.yai.shells.vizo.R as ShellR
++import tv.own.owntv.mobile.ui.nav.mobileVizoPalette
+ import androidx.compose.foundation.layout.Row
+ import androidx.compose.foundation.layout.WindowInsets
+ import androidx.compose.foundation.layout.WindowInsetsSides
+@@ -230,9 +235,10 @@ fun MobileShell(
+ 
+     val backStackEntry by navController.currentBackStackEntryAsState()
+     val currentRoute = backStackEntry?.destination?.route
++    val vizoMode = LocalShellModes.current.selected == ShellMode.VIZO
+ 
+     // 600dp is Material's compact/medium boundary: below it a rail would eat the content.
+-    val useRail = windowWidthDp >= 600
++    val useRail = !vizoMode && windowWidthDp >= 600
+     // A phone held sideways (409 dp tall) gets the compact rail and the one-line header.
+     val compactRail = LocalConfiguration.current.screenHeightDp < 600
+     val destinations =
+@@ -593,7 +599,16 @@ fun MobileShell(
+             fullscreen = fullscreen,
+             startInset = railRoom,
+             header = {
+-                StagePageHeader(
++                if (vizoMode) {
++                    if (currentRoute != MobileDestination.HOME.route) {
++                        VizoButton(
++                            stringResource(ShellR.string.vizo_back),
++                            mobileVizoPalette(),
++                            { navController.popBackStack() },
++                            Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
++                        )
++                    }
++                } else StagePageHeader(
+                     title = titleRes?.let { stringResource(it) },
+                     backLabel = backLabel,
+                     onBack = { navController.popBackStack() },
+@@ -653,7 +668,7 @@ fun MobileShell(
+                 Column(
+                     Modifier
+                         .fillMaxWidth()
+-                        .padding(start = 14.dp, end = 14.dp, bottom = maxOf(18.dp, navBottom)),
++                        .padding(start = 14.dp, end = 14.dp, bottom = if (vizoMode && !dockedMini) navBottom else maxOf(18.dp, navBottom)),
+                     verticalArrangement = Arrangement.spacedBy(8.dp),
+                 ) {
+                     if (dockedMini) {
+@@ -674,7 +689,7 @@ fun MobileShell(
+                             programmeStopMs = if (live != null) nowNext?.now?.stopMs else null,
+                         )
+                     }
+-                    if (!useRail) {
++                    if (!vizoMode && !useRail) {
+                         StageNavBar(
+                             destinations = destinations,
+                             current = current,
 diff --git a/clients/android-mobile/build.gradle.kts b/clients/android-mobile/build.gradle.kts
 index d051a591775a7c11c97d14f1311b59e8cdf7a866..eb1590ffcfe581a6766a17589fb698a4ec65e9e0 100644
 --- a/clients/android-mobile/build.gradle.kts
@@ -424,7 +488,7 @@ index 1c7cb68525e35ec0a39cc6fc331e211e781b482c..8177d78775b87492a4b18a41c6798774
                  SourceType.STALKER -> SourceKind.STALKER
                  else -> SourceKind.XTREAM
 diff --git a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
-index 23c57c213a17db35a98cfe5fa4491792ec999fd1..c59a3e6aaf51f2ca371a0c178b966fa729a741e6 100644
+index 23c57c213a17db35a98cfe5fa4491792ec999fd1..2f6d45bdf57775790a26929a897dc266e2b9d603 100644
 --- a/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
 +++ b/clients/android-tv/app/src/main/java/tv/own/owntv/features/shell/OwnTVShell.kt
 @@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
@@ -456,11 +520,25 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..c59a3e6aaf51f2ca371a0c178b966fa7
  import androidx.compose.ui.focus.focusRequester
  import androidx.compose.ui.focus.focusRestorer
  import androidx.compose.ui.focus.onFocusChanged
-@@ -157,6 +171,11 @@ fun OwnTVShell(
+@@ -146,17 +160,24 @@ fun OwnTVShell(
+ 
+     val scope = rememberCoroutineScope()
+     val sidebarFocus = remember { FocusRequester() }
++    val contentAreaFocus = remember { FocusRequester() }
++    val modes = LocalShellModes.current
++    val classicMode = modes.selected == ShellMode.CLASSIC
+     // When focus was last sent to the rail on purpose: ◀ / ▶ from the content, or the app itself
+     // ([focusRail]). A rail visit that follows neither does not open the floating rail (#7.1).
+     var railKeyAt by remember { mutableLongStateOf(0L) }
+     val focusRail = {
+         railKeyAt = android.os.SystemClock.uptimeMillis()
+-        runCatching { sidebarFocus.requestFocus() }
++        runCatching { (if (classicMode) sidebarFocus else contentAreaFocus).requestFocus() }
+         Unit
+     }
      val contentFocusManager = androidx.compose.ui.platform.LocalFocusManager.current
      val contentLtr = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Ltr
      val homeFirstRowFocus = remember { FocusRequester() }
-+    val modes = LocalShellModes.current
 +    val vizoEnabled = modes.selected == ShellMode.VIZO
 +    val mateAtHome = modes.selected == ShellMode.MATE && selectedSection == MainSection.HOME
 +    var shellSettingsPage by remember { mutableStateOf<ShellSettingsPage?>(null) }
@@ -468,43 +546,87 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..c59a3e6aaf51f2ca371a0c178b966fa7
      var focusedLayer by remember { mutableStateOf(ShellLayer.SIDEBAR) }
      var showExit by remember { mutableStateOf(false) }
      var showAvatarPicker by remember { mutableStateOf(false) }
-@@ -1045,7 +1064,11 @@ fun OwnTVShell(
+@@ -223,7 +244,6 @@ fun OwnTVShell(
+     val railCounts by railVm.counts.collectAsStateWithLifecycle()
+     val railDetails by railVm.details.collectAsStateWithLifecycle()
+     // Where ▶ out of the Stage rail returns to: the content, exactly as it was left.
+-    val contentAreaFocus = remember { FocusRequester() }
+     var homeEntry by remember { mutableStateOf<(() -> Boolean)?>(null) }
+     // The guide's entry hook: the TV Guide, or Live TV in Guide view (null while Live TV shows its list).
+     var guideEntry by remember { mutableStateOf<(() -> Boolean)?>(null) }
+@@ -899,7 +919,7 @@ fun OwnTVShell(
+         onSelectSection(section)
+         // A shortcut may be fired by a control inside the destination being replaced (most notably
+         // Settings). Once that screen leaves composition its focused node disappears, so hand focus
+-        // to the persistent sidebar after the new destination has rendered.
++        // to the active mode after the new destination has rendered.
+         scope.launch {
+             withFrameNanos { }
+             focusRail()
+@@ -1021,6 +1041,10 @@ fun OwnTVShell(
+         searchReturn = null
+         onSelectSection(MainSection.SEARCH)
+     }
++    LaunchedEffect(modes.selected) {
++        withFrameNanos { }
++        if (playerMode == PlayerMode.NONE && (classicMode || selectedSection != MainSection.HOME)) focusRail()
++    }
+     LaunchedEffect(selectedSection) {
+         if (selectedSection != MainSection.SEARCH && selectedSection != searchReturn) searchReturn = null
+     }
+@@ -1045,10 +1069,17 @@ fun OwnTVShell(
              // the first press: the fallback below simply moved focus to the rail and nothing else
              // happened. Handled here as well so the answer is the same whichever handler fires; a
              // sub-screen of Settings still wins, because its handler is composed deeper than this.
 -            selectedSection == MainSection.SETTINGS -> { restoreFocus = true; onSelectSection(MainSection.MORE) }
 +            selectedSection == MainSection.SETTINGS -> {
 +                restoreFocus = true
-+                onSelectSection(if (modes.selected == ShellMode.MATE) MainSection.HOME else MainSection.MORE)
++                onSelectSection(if (classicMode) MainSection.MORE else MainSection.HOME)
 +            }
-+            mateAtHome -> showExit = true
              // Reached from a Search result: Back returns to Search once, its query, tab and row kept.
              searchReturn == selectedSection && focusedLayer != ShellLayer.SIDEBAR -> returnToSearch()
-             focusedLayer == ShellLayer.SIDEBAR -> showExit = true
-@@ -1296,7 +1319,7 @@ fun OwnTVShell(
+-            focusedLayer == ShellLayer.SIDEBAR -> showExit = true
++            !classicMode && selectedSection != MainSection.HOME -> {
++                restoreFocus = true
++                onSelectSection(MainSection.HOME)
++            }
++            !classicMode || focusedLayer == ShellLayer.SIDEBAR -> showExit = true
+             else -> focusRail()
+         }
+     }
+@@ -1296,7 +1327,7 @@ fun OwnTVShell(
                              // edge (or beside a docked rail).
                              Modifier
                                  .padding(
 -                                    start = if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) {
-+                                    start = if (!mateAtHome && navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) {
++                                    start = if (classicMode && navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) {
                                          tv.own.owntv.features.shell.components.railDockedReserve(navSize)
                                      } else 0.dp,
                                  )
-@@ -1344,7 +1367,7 @@ fun OwnTVShell(
+@@ -1305,7 +1336,7 @@ fun OwnTVShell(
+                                 // overlapped the content's left edge, which left Back as the only way out.
+                                 .onKeyEvent { e ->
+                                     val back = if (contentLtr) Key.DirectionLeft else Key.DirectionRight
+-                                    if (e.key != back || e.type != KeyEventType.KeyDown) return@onKeyEvent false
++                                    if (!classicMode || e.key != back || e.type != KeyEventType.KeyDown) return@onKeyEvent false
+                                     if (!contentFocusManager.moveFocus(if (contentLtr) androidx.compose.ui.focus.FocusDirection.Left else androidx.compose.ui.focus.FocusDirection.Right)) {
+                                         focusRail()
+                                     }
+@@ -1344,7 +1375,7 @@ fun OwnTVShell(
                                  .focusGroup(),
                          )
  
 -                        selectedSection == MainSection.SETTINGS -> tv.own.owntv.features.settings.lock.SettingsPinGate(onDismiss = { settingsStart = null; openEpgAdd = false; openSourcesAdd = false; restoreFocus = true; onSelectSection(shellVm.sectionToLeaveLockedSettings()) }) { SettingsScreen(
-+                        selectedSection == MainSection.SETTINGS -> tv.own.owntv.features.settings.lock.SettingsPinGate(onDismiss = { settingsStart = null; openEpgAdd = false; openSourcesAdd = false; vizoSourceType = null; shellSettingsPage = null; restoreFocus = true; onSelectSection(shellVm.sectionToLeaveLockedSettings()) }) { SettingsScreen(
++                        selectedSection == MainSection.SETTINGS -> tv.own.owntv.features.settings.lock.SettingsPinGate(onDismiss = { settingsStart = null; openEpgAdd = false; openSourcesAdd = false; vizoSourceType = null; shellSettingsPage = null; restoreFocus = true; onSelectSection(if (classicMode) shellVm.sectionToLeaveLockedSettings() else MainSection.HOME) }) { SettingsScreen(
                              themeMode = themeMode,
                              uiZoomPercent = uiZoomPercent,
                              onSetZoom = onSetZoom,
-@@ -1353,11 +1376,14 @@ fun OwnTVShell(
+@@ -1353,11 +1384,14 @@ fun OwnTVShell(
                              onOpenPlaylist = {},
                              // Settings is reached through More now, so Back out of its root goes
                              // back there rather than to the rail — one level out, not two.
 -                            onBack = { restoreFocus = true; onSelectSection(MainSection.MORE) },
-+                            onBack = { restoreFocus = true; onSelectSection(if (modes.selected == ShellMode.MATE) MainSection.HOME else MainSection.MORE) },
++                            onBack = { restoreFocus = true; onSelectSection(if (classicMode) MainSection.MORE else MainSection.HOME) },
                              openEpgAdd = openEpgAdd,
                              onEpgAddConsumed = { openEpgAdd = false },
                              openSourcesAdd = openSourcesAdd,
@@ -516,7 +638,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..c59a3e6aaf51f2ca371a0c178b966fa7
                              start = settingsStart,
                              onStartConsumed = { settingsStart = null },
                              onOpenSportsTeam = { t ->
-@@ -1370,66 +1396,167 @@ fun OwnTVShell(
+@@ -1370,66 +1404,167 @@ fun OwnTVShell(
                                  .focusGroup(),
                          ) }
  
@@ -731,32 +853,59 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..c59a3e6aaf51f2ca371a0c178b966fa7
 +                                    onSelectSection(MainSection.SPORTS)
 +                                },
 +                                onAddSource = { openSourcesAdd = true; onSelectSection(MainSection.SETTINGS) },
-+                                contentStart = if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) 64.mpx else 150.mpx,
++                                contentStart = if (!classicMode) 24.mpx else if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) 64.mpx else 150.mpx,
 +                                modifier = Modifier.weight(1f).fillMaxWidth(),
 +                            )
 +                        }
  
                          selectedSection == MainSection.SEARCH -> SearchScreen(
                              vm = searchVm,
-@@ -1567,7 +1694,7 @@ fun OwnTVShell(
+@@ -1520,7 +1655,7 @@ fun OwnTVShell(
+                             restoreFocus = restoreFocus,
+                             onRestored = { restoreFocus = false },
+                             onEntryHook = { downloadsEntry = it },
+-                            contentStart = if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) 64.mpx else 150.mpx,
++                            contentStart = if (!classicMode) 24.mpx else if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) 64.mpx else 150.mpx,
+                             modifier = Modifier.fillMaxSize(),
+                         )
+ 
+@@ -1534,7 +1669,7 @@ fun OwnTVShell(
+                             onOpenLive = { onSelectSection(MainSection.LIVE_TV) },
+                             onChildFocused = { focusedLayer = ShellLayer.CONTENT },
+                             onEntryHook = { favoritesEntry = it },
+-                            contentStart = if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) 64.mpx else 150.mpx,
++                            contentStart = if (!classicMode) 24.mpx else if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) 64.mpx else 150.mpx,
+                             modifier = Modifier.fillMaxSize(),
+                         )
+ 
+@@ -1544,7 +1679,7 @@ fun OwnTVShell(
+                             onChildFocused = { focusedLayer = ShellLayer.CONTENT },
+                             onEntryHook = { sportsEntry = it },
+                             active = playerMode == PlayerMode.NONE,
+-                            contentStart = if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) 64.mpx else 150.mpx,
++                            contentStart = if (!classicMode) 24.mpx else if (navStyle == tv.own.owntv.core.settings.SettingsRepository.NavStyle.DOCKED) 64.mpx else 150.mpx,
+                             modifier = Modifier.fillMaxSize(),
+                         )
+ 
+@@ -1567,7 +1702,7 @@ fun OwnTVShell(
                  }
              }
            }
 -            tv.own.owntv.features.shell.components.StageStatusCluster(
-+            if (!mateAtHome) tv.own.owntv.features.shell.components.StageStatusCluster(
++            if (classicMode) tv.own.owntv.features.shell.components.StageStatusCluster(
                  continuePill = continueTarget?.let { target ->
                      val live = target.kind == tv.own.owntv.features.home.ContinueKind.LIVE
                      tv.own.owntv.features.shell.components.ContinuePill(
-@@ -1599,7 +1726,7 @@ fun OwnTVShell(
+@@ -1599,7 +1734,7 @@ fun OwnTVShell(
                  subscriptionBadge = subscriptionBadge.takeIf { selectedSection == MainSection.HOME },
                  modifier = Modifier.align(Alignment.TopEnd).onFocusChanged { clusterFocused = it.hasFocus }.focusGroup(),
              )
 -            tv.own.owntv.features.shell.components.StageRail(
-+            if (!mateAtHome) tv.own.owntv.features.shell.components.StageRail(
++            if (classicMode) tv.own.owntv.features.shell.components.StageRail(
                  state = railState,
                  size = railSize,
                  length = navLength,
-@@ -1617,7 +1744,7 @@ fun OwnTVShell(
+@@ -1617,7 +1752,7 @@ fun OwnTVShell(
                  selectedItemFocusRequester = sidebarFocus,
                  contentFocusRequester = contentAreaFocus,
                  enterContent = when (selectedSection) {
@@ -765,7 +914,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..c59a3e6aaf51f2ca371a0c178b966fa7
                      MainSection.EPG, MainSection.LIVE_TV -> guideEntry
                      MainSection.MOVIES, MainSection.SERIES -> vodEntry
                      MainSection.DOWNLOADS -> downloadsEntry
-@@ -1739,9 +1866,24 @@ fun OwnTVShell(
+@@ -1739,9 +1874,24 @@ fun OwnTVShell(
        val exoParked = playerMode == PlayerMode.NONE && liveOnExo && multiview == null
        if (multiview == null && (playerMode == PlayerMode.FULLSCREEN || playerMode == PlayerMode.MINI || exoParked)) {
          val isFull = playerMode == PlayerMode.FULLSCREEN
@@ -791,7 +940,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..c59a3e6aaf51f2ca371a0c178b966fa7
              } else {
                  // Dynamic docked size/position: a screen-width fraction at the chosen corner/edge, so it
                  // scales with the panel + UI zoom (never a fixed-size box).
-@@ -1887,7 +2029,14 @@ fun OwnTVShell(
+@@ -1887,7 +2037,14 @@ fun OwnTVShell(
                      onAudioMode = toAudioMode,
                      // The channel-list overlay draws ABOVE the HUD; while it's open the HUD goes inert so
                      // its hide/error focus grabs can't yank D-pad focus off the overlay.
@@ -807,7 +956,7 @@ index 23c57c213a17db35a98cfe5fa4491792ec999fd1..c59a3e6aaf51f2ca371a0c178b966fa7
                      onChannelUp = zap?.let { z -> { z(-1) } },
                      onChannelDown = zap?.let { z -> { z(1) } },
                      onOpenChannelList = if (isTunedLive && liveCanZap) { { showChannelList = true } } else null,
-@@ -2166,6 +2315,21 @@ fun OwnTVShell(
+@@ -2166,6 +2323,21 @@ fun OwnTVShell(
              }
            }
          }

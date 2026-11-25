@@ -120,8 +120,10 @@ fun VizoHome(
         if (canContinue) add(MenuItem(R.string.vizo_continue) { onAction(VizoAction.CONTINUE) })
         add(MenuItem(R.string.vizo_account) { onAction(VizoAction.ACCOUNT) })
         if (!television) add(MenuItem(R.string.vizo_remote) { onAction(VizoAction.REMOTE) })
-        add(MenuItem(R.string.vizo_search) { onAction(VizoAction.SEARCH) })
-        add(MenuItem(R.string.vizo_guide) { onAction(VizoAction.GUIDE) })
+        if (!television) {
+            add(MenuItem(R.string.vizo_search) { onAction(VizoAction.SEARCH) })
+            add(MenuItem(R.string.vizo_guide) { onAction(VizoAction.GUIDE) })
+        }
     }
 
     Column(
@@ -143,6 +145,10 @@ fun VizoHome(
             VizoText(stringResource(title), palette.text, Modifier.weight(1f), size = 20, strong = true)
             val target = if (television) Modifier.focusRequester(focus) else Modifier
             if (page == VizoPage.HOME) {
+                if (television) {
+                    VizoButton(stringResource(R.string.vizo_search), palette, { onAction(VizoAction.SEARCH) })
+                    VizoButton(stringResource(R.string.vizo_guide), palette, { onAction(VizoAction.GUIDE) })
+                }
                 VizoButton(stringResource(R.string.vizo_settings), palette, { page = VizoPage.SETTINGS }, target)
             } else {
                 VizoButton(stringResource(R.string.vizo_back), palette, { page = VizoPage.HOME }, target)
@@ -160,7 +166,7 @@ fun VizoHome(
             }
         } else if (television) {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(190.dp),
+                columns = GridCells.Fixed(4),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
