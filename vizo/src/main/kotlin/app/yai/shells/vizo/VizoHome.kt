@@ -5,6 +5,8 @@ package app.yai.shells.vizo
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -148,8 +150,13 @@ fun VizoHome(
         }
 
         if (page != VizoPage.HOME) {
-            menu.forEach { row ->
-                VizoButton(stringResource(row.title), palette, row.onClick, Modifier.fillMaxWidth())
+            Column(
+                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                menu.forEach { row ->
+                    VizoButton(stringResource(row.title), palette, row.onClick, Modifier.fillMaxWidth())
+                }
             }
         } else if (television) {
             LazyVerticalGrid(

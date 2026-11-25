@@ -2,10 +2,10 @@
 package app.yai.shells.mate
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -72,24 +72,18 @@ fun MateHome(
             VizoText(stringResource(R.string.mate_guide), palette.muted, size = 15)
         }
         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            LazyColumn(
+            Column(
                 Modifier.width(182.dp).fillMaxHeight().clip(RoundedCornerShape(16.dp))
-                    .background(palette.surface).focusGroup().padding(8.dp),
+                    .background(palette.surface).verticalScroll(rememberScrollState()).focusGroup().padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                item {
-                    VizoButton(stringResource(ShellR.string.vizo_guide), palette, { page = MatePage.GUIDE },
-                        Modifier.fillMaxWidth().focusRequester(homeFocus), accent = page == MatePage.GUIDE)
-                }
-                item {
-                    VizoButton(stringResource(ShellR.string.vizo_add), palette, { page = MatePage.ADD_SOURCE },
-                        Modifier.fillMaxWidth(), accent = page == MatePage.ADD_SOURCE)
-                }
-                item {
-                    VizoButton(stringResource(ShellR.string.vizo_settings), palette, { page = MatePage.SETTINGS },
-                        Modifier.fillMaxWidth(), accent = page == MatePage.SETTINGS)
-                }
-                items(navigation, key = { it.second.name }) { (label, action) ->
+                VizoButton(stringResource(ShellR.string.vizo_guide), palette, { page = MatePage.GUIDE },
+                    Modifier.fillMaxWidth().focusRequester(homeFocus), accent = page == MatePage.GUIDE)
+                VizoButton(stringResource(ShellR.string.vizo_add), palette, { page = MatePage.ADD_SOURCE },
+                    Modifier.fillMaxWidth(), accent = page == MatePage.ADD_SOURCE)
+                VizoButton(stringResource(ShellR.string.vizo_settings), palette, { page = MatePage.SETTINGS },
+                    Modifier.fillMaxWidth(), accent = page == MatePage.SETTINGS)
+                navigation.forEach { (label, action) ->
                     VizoButton(stringResource(label), palette, { onAction(action) }, Modifier.fillMaxWidth())
                 }
             }
@@ -107,7 +101,8 @@ fun MateHome(
                     }
                 } else {
                     Column(
-                        Modifier.align(Alignment.TopEnd).widthIn(max = 365.dp).fillMaxSize().padding(16.dp),
+                        Modifier.align(Alignment.TopEnd).widthIn(max = 365.dp).fillMaxSize()
+                            .verticalScroll(rememberScrollState()).padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         VizoText(
@@ -129,11 +124,9 @@ fun MateHome(
                                 R.string.mate_parental to MateAction.PARENTAL,
                                 ShellR.string.vizo_full_settings to MateAction.SETTINGS,
                             )
-                            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                items(options, key = { it.second.name }) { (label, action) ->
-                                    VizoButton(stringResource(label), palette, { onAction(action) },
-                                        if (action == MateAction.APPEARANCE) Modifier.fillMaxWidth().focusRequester(panelFocus) else Modifier.fillMaxWidth())
-                                }
+                            options.forEach { (label, action) ->
+                                VizoButton(stringResource(label), palette, { onAction(action) },
+                                    if (action == MateAction.APPEARANCE) Modifier.fillMaxWidth().focusRequester(panelFocus) else Modifier.fillMaxWidth())
                             }
                         }
                     }

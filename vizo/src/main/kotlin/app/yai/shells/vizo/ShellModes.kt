@@ -4,6 +4,8 @@ package app.yai.shells.vizo
 import android.content.SharedPreferences
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -93,7 +95,8 @@ private fun ShellModeDialog(modes: ShellModes, page: DialogPage, palette: VizoPa
     Dialog(onDismissRequest = ::back, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
             Modifier.padding(24.dp).widthIn(max = if (modes.television) 420.dp else 360.dp)
-                .fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(palette.background).padding(20.dp),
+                .fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(palette.background)
+                .verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp),
         ) {
             val title = if (page == DialogPage.SETTINGS) R.string.vizo_settings else R.string.shell_appearance
