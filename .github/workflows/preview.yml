@@ -84,6 +84,10 @@ jobs:
           export VERSION_NAME="0.2.$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"
           chmod +x gradlew
           ./gradlew :app:assembleStandardRelease -Pshells.updates=true -Powntv.corePath="$GITHUB_WORKSPACE/YAiPlayer/clients/owntv-core" --max-workers=4 --no-daemon --stacktrace
+      - name: Test TV guide row focus
+        if: matrix.platform == 'tv'
+        working-directory: YAiPlayer/clients/android-tv
+        run: ./gradlew :app:testStandardDebugUnitTest --tests tv.own.owntv.features.epg.GuideRowFocusArgsTest -Powntv.corePath="$GITHUB_WORKSPACE/YAiPlayer/clients/owntv-core" --max-workers=4 --no-daemon
       - name: Verify package, signature and shell classes
         env:
           TARGET_PLATFORM: ${{ matrix.platform }}
@@ -154,7 +158,7 @@ jobs:
           PY
           cat > notes.md <<'EOF'
           YAiPlayer Shells для телефона и ТВ. Обновления проверяются при запуске и в настройках приложения.
-          Mate для приставки: телегид, архив, поиск передач, библиотека с записями и программа канала по кнопке «Вправо» в полноэкранном эфире.
+          Исправлен возврат фокуса пульта в телегид Mate после просмотра и вход на строку канала после прокрутки.
           При переходе со старых тестовых APK shells-preview потребуется переустановка тестового приложения.
           EOF
           gh release create "$tag" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest --title "YAiPlayer Shells ${tag#v}" --notes-file notes.md
